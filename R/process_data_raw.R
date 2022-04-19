@@ -88,35 +88,46 @@ saveRDS(nodexy,
 saveRDS(h, 
         "./data/spatial/mesh/mesh_h.rds")
 
-#### Build meshs 
+#### Build mesh
 run <- FALSE
 if(run){
+  
   ## Mesh around nodes
   mesh_around_nodes <- build_mesh(nodexy = nodexy,
                                   trinodes = trinodes,
                                   mesh_type = "element")
   raster::crs(mesh_around_nodes) <- wgs84
   
-  ## Save meshes
+  ## Save mesh
   saveRDS(mesh_around_nodes, 
           "./data/spatial/mesh/mesh_around_nodes.rds")
+  
 } else {
   mesh_around_nodes <- 
     readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
 }
 
-#### Crop meshes within the MPA
+#### Crop mesh within the MPA
 run <- FALSE
 if(run){
+  
   ## Mesh around nodes
   mesh_around_nodes_in_mpa <- raster::crop(mesh_around_nodes, mpa)
-  mesh_around_nodes_in_mpa$ID
-  raster::plot(mesh_around_nodes_in_mpa, col = "royalblue")
+  # raster::plot(mesh_around_nodes_in_mpa, col = "royalblue")
+  
+  ## Summary statistics for the mesh in the MPA
+  # Because this has been cut at the edges, the lower bound for the cell area
+  # ... is an underestimate, but the median value should be stable. 
   utils.add::basic_stats(raster::area(mesh_around_nodes_in_mpa)/1e6)
+  # min mean median  max  sd  IQR  MAD
+  #   0 0.14   0.13 0.66 0.1 0.15 0.11
+  length(unique(mesh_around_nodes_in_mpa$ID))
+  # 5055
   
   ## Save meshes
   saveRDS(mesh_around_nodes_in_mpa, 
           "./data/spatial/mesh/mesh_around_nodes_in_mpa.rds")
+  
 } else {
   mesh_around_nodes_in_mpa <- 
     readRDS("./data/spatial/mesh/mesh_around_nodes_in_mpa.rds")
