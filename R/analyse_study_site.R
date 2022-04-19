@@ -24,7 +24,8 @@ mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
 coast     <- readRDS("./data/spatial/coast/coast.rds")
 mpa       <- readRDS("./data/spatial/mpa/mpa.rds")
 # Validation datasets
-val_bt    <- readRDS("./data/wc/val_temp_bottom.rds")
+val_tb    <- readRDS("./data/wc/val_temp_bottom.rds")
+val_tp    <- readRDS("./data/wc/val_temp_profile_obs.rds")
 
 ################################
 ################################
@@ -48,6 +49,7 @@ mesh_site  <- raster::crop(mesh, ext)
 #### Define graphical parameters
 cex      <- 1.5
 cex.axis <- cex - 0.2
+quick    <- FALSE
 
 #### Set up figure 
 save <- TRUE
@@ -78,18 +80,38 @@ raster::plot(coast_site,
              lwd = 0.25)
 
 #### Add spatial fields 
-# raster::lines(mesh_site, col = "royalblue", lwd = 0.25)
+if(!quick) raster::lines(mesh_site, col = "royalblue", lwd = 0.25)
 raster::lines(mpa, lwd = 1.75)
 
 #### Add validation locations
 # Bottom temperature validation
-val_bt_sp <- sp::SpatialPoints(val_bt[, c("long", "lat")], wgs84)
-val_bt_sp <- sp::spTransform(val_bt_sp, bng)
-points(val_bt_sp, pch = 4, cex = 0.75)
+val_tb_sp <- sp::SpatialPoints(val_tb[, c("long", "lat")], wgs84)
+val_tb_sp <- sp::spTransform(val_tb_sp, bng)
+points(val_tb_sp, pch = 4, cex = 0.75)
 # Temperature-depth profile validation 
+val_tp_sp <- 
+  val_tp %>% 
+  dplyr::group_by(event_id) %>% 
+  dplyr::slice(1L) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(x = long, y = lat) %>%
+  sp::SpatialPoints(proj = wgs84) %>%
+  sp::spTransform(CRSobj = bng)
+raster::coordinates(val_tp_sp)
+points(val_tp_sp, pch = 3,  cex = 0.75, lwd = 1.5, col = "grey50")
+legend(182000, 775000,
+       pch = c(4, 3), 
+       pt.cex = c(0.75, 0.75), 
+       lwd = c(1, 1.5), 
+       lty = c(0, 0),
+       col = c("black", "grey50"), 
+       legend = c("Bottom", "Profile"),
+       x.intersp = 0.1,
+       bty = "n"
+       )
 
 #### Add essential labels
-labels <- data.frame(x = c(161025.3, 171000, 190000, 158885.5), 
+labels <- data.frame(x = c(161025.3, 171000, 190000, 160000), 
                      y = c(733265.5, 750740.6, 719216.9, 687693.1), 
                      text = c("Mull", "Morvern", "Mainland", "Jura"))
 text(labels$x, labels$y, labels$text, font = 2)
@@ -115,8 +137,7 @@ mtext(side = 1, "Easting", cex = cex, line = 2)
 mtext(side = 2, "Northing", cex = cex, line = 0)
 
 #### Add map of the UK
-add_uk <- FALSE
-if(add_uk){
+if(!quick){
   TeachingDemos::subplot(
     { 
       raster::plot(coast_uk, 
