@@ -80,18 +80,11 @@ colnames(nodexy) <- c("x", "y", "z")
 nodexy$node_id   <- 1:nrow(nodexy)
 nodexy           <- dplyr::select(nodexy, node_id, x, y, z)
 nrow(nodexy)
-## Node connections
-colnames(trinodes)  <- c("node1", "node2", "node3")
-trinodes$element_id <- 1:nrow(trinodes)
-trinodes            <- dplyr::select(trinodes, element_id, node1, node2, node3)
-nrow(trinodes)
 ## Node depths 
 h <- data.frame(ID = 1:nrow(h), h = h$h)
 ## Save dataframes
 saveRDS(nodexy, 
         "./data/spatial/mesh/mesh_nodexy.rds")
-saveRDS(trinodes, 
-        "./data/spatial/mesh/mesh_trinodes.rds")
 saveRDS(h, 
         "./data/spatial/mesh/mesh_h.rds")
 
@@ -104,22 +97,12 @@ if(run){
                                   mesh_type = "element")
   raster::crs(mesh_around_nodes) <- wgs84
   
-  ## Mesh around elements 
-  mesh_around_elements <- build_mesh(nodexy = nodexy,
-                                     trinodes = trinodes,
-                                     mesh_type = "node")
-  raster::crs(mesh_around_elements) <- wgs84
-  
   ## Save meshes
   saveRDS(mesh_around_nodes, 
           "./data/spatial/mesh/mesh_around_nodes.rds")
-  saveRDS(mesh_around_elements, 
-          "./data/spatial/mesh/mesh_around_elements.rds")
 } else {
   mesh_around_nodes <- 
     readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
-  mesh_around_elements <- 
-    readRDS("./data/spatial/mesh/mesh_around_elements.rds")
 }
 
 #### Crop meshes within the MPA
@@ -131,22 +114,12 @@ if(run){
   raster::plot(mesh_around_nodes_in_mpa, col = "royalblue")
   utils.add::basic_stats(raster::area(mesh_around_nodes_in_mpa)/1e6)
   
-  ## Mesh around elements
-  mesh_around_elements_in_mpa <- raster::crop(mesh_around_elements, mpa)
-  mesh_around_elements_in_mpa$ID
-  raster::plot(mesh_around_elements_in_mpa, col = "royalblue")
-  utils.add::basic_stats(raster::area(mesh_around_elements_in_mpa)/1e6)
-  
   ## Save meshes
   saveRDS(mesh_around_nodes_in_mpa, 
           "./data/spatial/mesh/mesh_around_nodes_in_mpa.rds")
-  saveRDS(mesh_around_elements_in_mpa, 
-          "./data/spatial/mesh/mesh_around_elements_in_mpa.rds")
 } else {
   mesh_around_nodes_in_mpa <- 
     readRDS("./data/spatial/mesh/mesh_around_nodes_in_mpa.rds")
-  mesh_around_elements_in_mpa <- 
-    readRDS("./data/spatial/mesh/mesh_around_elements_in_mpa.rds")
 }
 
 
