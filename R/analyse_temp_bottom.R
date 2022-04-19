@@ -177,7 +177,7 @@ pretty_plot(temporal_effort$date,
             type = "l",
             lwd = 1,
             xlab = "Time (months)",
-            ylab = "Daily Count [n(obs)]",
+            ylab = "Daily number of observations",
             cex.lab = cex)
 par(pp)
 if(save) dev.off()
@@ -305,7 +305,7 @@ pretty_plot(space_and_time$date,
             col = scales::alpha("grey", 0.9),
             bg = scales::alpha("grey", 0.9),
             xlab = "Time (months)",
-            ylab = "Daily Number of Nodes",
+            ylab = "Daily number of nodes",
             cex.lab = cex
 )
 # Add weekly average to elucidate trends
@@ -326,11 +326,34 @@ if(save) dev.off()
 #### Summary statistics 
 
 #### Correlation
+nrow(validation)
 cor(validation$obs, validation$wc, method = "spearman")
 # 0.9814745
 
+#### Monthly RMSE
+rmse <- 
+  validation %>%
+  dplyr::mutate(mm_yy = Tools4ETS::mmyy(date)) %>%
+  dplyr::group_by(mm_yy) %>%
+  dplyr::mutate(se = (wc - obs)^2) %>%
+  dplyr::summarise(rmse = sqrt(mean(se)))
+
 #### Distribution of differences
 utils.add::basic_stats(validation$diff)
+
+#### Examine ordered errors
+rmse %>% dplyr::arrange()
+
+#### Examine the % improvement from 2016 - 17 
+improvement <- (((rmse$rmse[1:4] - rmse$rmse[13:16])/rmse$rmse[1:4]) * 100) %>% sort() 
+# 77.09852 81.08708 88.16038 90.68037
+mean(improvement)
+
+#### Write tidy table with RMSEs to file 
+rmse %>% dplyr::select(Month = mm_yy, Score = rmse) %>%
+  dplyr::mutate(Score = round(Score, 2), 
+                Score = add_lagging_point_zero(Score, 2)) %>%
+  tidy_write(file = "./fig/val_temp_bottom_results_rmse_monthly.txt")
 
 
 ################################
