@@ -88,7 +88,9 @@ model skill resulting from model updates.
       - `analyse_temp_bottom.R` implements the validation analysis for
         bottom temperatures;
       - `analyse_temp_profile.R` implements the validation analysis for
-        temperature-depth profiles; <br/><br/>
+        temperature-depth profiles;
+      - `analyse_interpolation.R` evaluates the validity of the
+        interpolation method used in the validation analyses;<br/><br/>
 4.  **`fig/`** contains figures.
 
 Note that the `data-raw`, `data` and `fig` directories are not provided
@@ -101,7 +103,8 @@ in the online version of this repository.
 2.  **Process raw data** via `process_data_raw.R`.
 
 3.  **Implement data analysis** via `analyse_study_site.R`,
-    `analyse_temp_bottom.R` and `analyse_temp_profile.R`.
+    `analyse_temp_bottom.R`, `analyse_temp_profile.R` and
+    `analyse_interpolation.R`.
 
 # GitHub packages
 

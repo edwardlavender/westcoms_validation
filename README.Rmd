@@ -46,7 +46,8 @@ As part of previous research on flapper skate movement, flapper skate off the we
       - `process_data_raw.R` processes raw data;
       - `analyse_study_site.R` visualises the study site;
       - `analyse_temp_bottom.R` implements the validation analysis for bottom temperatures;
-      - `analyse_temp_profile.R` implements the validation analysis for temperature-depth profiles; <br/><br/>
+      - `analyse_temp_profile.R` implements the validation analysis for temperature-depth profiles; 
+      - `analyse_interpolation.R` evaluates the validity of the interpolation method used in the validation analyses;<br/><br/>
       
 4.  **`fig/`** contains figures.
 
@@ -58,7 +59,7 @@ Note that the `data-raw`, `data` and `fig` directories are not provided in the o
 
 2. **Process raw data** via `process_data_raw.R`. 
 
-3. **Implement data analysis** via `analyse_study_site.R`, `analyse_temp_bottom.R` and `analyse_temp_profile.R`.
+3. **Implement data analysis** via `analyse_study_site.R`, `analyse_temp_bottom.R`, `analyse_temp_profile.R` and `analyse_interpolation.R`.
 
 # GitHub packages
 
