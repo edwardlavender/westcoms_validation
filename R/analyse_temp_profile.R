@@ -155,6 +155,13 @@ if(run){
   length(unique(paste0(obs$lat, "_", obs$long)))
   # although these only lie in 5 different nodes:
   length(unique(obs$mesh_ID))
+  # Events lasted between 8 to 20 minutes 
+  obs %>% 
+    dplyr::group_by(event_id) %>%
+    dplyr::summarise(duration = as.numeric(difftime(max(date_time), min(date_time)))) %>%
+    dplyr::arrange(duration) %>%
+    dplyr::pull(duration) %>%
+    utils.add::basic_stats()
   
   #### Visualise validation depth-temperature profiles
   obs_ls <- split(obs, f = obs$event_id)
