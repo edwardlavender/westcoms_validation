@@ -27,10 +27,6 @@ mpa       <- readRDS("./data/spatial/mpa/mpa.rds")
 acoustics <- readRDS("./data/skate/acoustics.rds")
 archival  <- readRDS("./data/skate/archival.rds")
 
-#### Local parameters
-cex      <- 1.5
-cex.axis <- cex - 0.2
-cex.pch  <- 0.2
 
 ################################
 ################################
@@ -79,6 +75,9 @@ if(implement_validate){
 } else{
   validation <- readRDS("./data/wc/val_temp_bottom.rds")
 }
+
+#### Fix validation differences (model - observation)
+validation$diff <- validation$wc - validation$obs
 
 #### Standard checks 
 check <- FALSE
@@ -155,6 +154,11 @@ sort(table(validation$key)/nrow(validation) * 100 %>% round(digits = 1))
 
 ################################
 #### Temporal validation effort
+
+#### Local parameters
+cex      <- 1.5
+cex.axis <- cex - 0.2
+cex.pch  <- 0.2
 
 #### Define dataframe of temporal validation effort 
 temporal_effort <- table(validation$date)
@@ -327,6 +331,8 @@ if(save) dev.off()
 
 #### Correlation
 nrow(validation)
+cor(validation$obs, validation$wc)
+# 0.9846246
 cor(validation$obs, validation$wc, method = "spearman")
 # 0.9814745
 
@@ -357,19 +363,35 @@ rmse %>% dplyr::select(Month = mm_yy, Score = rmse) %>%
 
 
 ################################
-#### Distribution of differences
+#### Visualisation 
+
+#### Local parameters
+cex.label <- 1.7
+cex       <- 1.5
+cex.axis  <- cex - 0.2
+cex.pch   <- 0.2
+line.ylab <- 2.5
+adj.label <- 0
+add_label <- 
+  function(x) mtext(side = 3, x, font = 2, cex = cex.label, adj = adj.label)
+
+#### Set up figure 
+if(save) png("./fig/val_temp_bottom_results.png",
+             height = 8, width = 8.5, units = "in",  res = 600)
+pp <- par(mfrow = c(2, 2), 
+          oma = c(2, 2, 1, 1), 
+          mar = c(3, 3, 3, 3))
 
 #### Histogram of differences
 save <- TRUE
-if(save) png("./fig/val_temp_bottom_results_hist.png",
-             height = 8, width = 8, units = "in",  res = 600)
 pscale <- 1e4
 pretty_hist(validation$diff,
             xn = 3,
             xlab = "",
             ylab = "",
+            xlim = c(-1, 2),
             cex.lab = cex,
-            xaxis = list(cex.axis = cex.axis),
+            xaxis = list(at = seq(-1, 2, by = 0.5), cex.axis = cex.axis),
             yaxis = list(at = seq(0, 35000, by = 5000), 
                          labels = add_lagging_point_zero(seq(0, 35000, by = 5000)/pscale, 1),
                          cex.axis = cex.axis, las = TRUE),
@@ -377,40 +399,36 @@ pretty_hist(validation$diff,
             )
 mtext_args <- 
   list(list(side = 1, 
-            text = expression(paste(Delta * T, " = ", T[o] - T[p], " (", degree, "C)")), 
+            text = expression(paste(T[M] - T[O], " (", degree, "C)")), 
             cex = cex, 
             line = 2.5),
        list(side = 2, 
             text = expression(paste("Frequency (x", 10^4, ")")), 
             cex = cex, 
-            line = 2.25)
+            line = line.ylab)
   )
 lapply(mtext_args, function(elm) do.call(mtext, elm))
-lines(x = c(0, 0), y = c(0, 3.5 * pscale), lty = 3)
-if(save) dev.off()
+lines(x = c(0, 0), y = c(0, 3.5 * pscale), lty = 3, lwd = 2)
+# lines(rep(mean(validation$diff), 2), c(0, 3.5 * pscale), lty = 2)
+add_label("A")
 
 
-################################
 #### Time series of observations/predictions 
 
-#### Set up graph to save 
-save <- TRUE
-if(save) png("./fig/val_temp_bottom_results_trend.png",
-             height = 8, width = 12, units = "in", res = 600)
-
-#### Define graphical properties 
-pp <- par(mfrow = c(1, 2), oma = c(3, 3, 1, 1), mar = c(2, 4, 2, 4))
+## Define graphical properties 
 paa <- list(side = 1:2,
             pretty = list(n = 5),
             axis = list(list(format = "%b-%y"), list()),
             control_axis = list(cex.axis = cex.axis, las = TRUE)
             )
 mta <- 
-  list(list(side = 1, "Time (months)", line = 3, cex = cex),
-       list(side = 2, text = expression(paste("Temperature (T,", degree, "C)")), line = 3, cex = cex)
+  list(list(side = 1, "Time (months)", line = 2.5, cex = cex),
+       list(side = 2, 
+            text = expression(paste("Temperature (T,", degree, "C)")), 
+            line = line.ylab, cex = cex)
   )
 
-#### Plot observed and expected time series 
+## Plot observed and expected time series 
 axis_ls <-
   pretty_plot(validation$timestamp, validation$obs,
               pretty_axis_args = paa,
@@ -423,23 +441,24 @@ points(validation$timestamp, validation$wc,
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], 
     ticksize = 0.02, lwd = 0.1)
 
-#### Add legend
-par(xpd = NA)
-legend(x = axis_ls[[1]]$lim[1] + (axis_ls[[1]]$lim[2] - axis_ls[[1]]$lim[1])/5, 
+## Add legend
+px <- par(xpd = NA)
+legend(x = axis_ls[[1]]$lim[1] + (axis_ls[[1]]$lim[2] - axis_ls[[1]]$lim[1])/4, 
        y = axis_ls[[2]]$lim[2],
        xjust = 1,
        pch = c(21, 21),
-       col = c("red", "black"),
-       pt.bg = c("red", "black"),
-       legend = c(expression(T[o]), expression(T[p])),
+       col = c("black", "red"),
+       pt.bg = c("black", "red"),
+       legend = c(expression(T[M]), expression(T[O])),
        cex = cex.axis,
        bty = "n",
        x.intersp = 1
 )
-par(xpd = TRUE)
+par(px)
+add_label("B")
 
 #### Plot difference through time
-mta[[2]]$text <- expression(paste(Delta * T, " = ", T[o] - T[p], " (", degree, "C)"))
+mta[[2]]$text <- expression(paste(T[M]- T[O], " (", degree, "C)"))
 axis_ls <-
   pretty_plot(validation$timestamp, validation$diff,
               pretty_axis_args = paa,
@@ -449,16 +468,12 @@ axis_ls <-
   )
 lines(axis_ls[[1]]$lim, c(0, 0), lwd = 2, lty = 3, col = "black")
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], ticksize = 0.02, lwd = 0.1)
-
-#### save figure
-par(pp)
-if(save) dev.off()
+add_label("C")
 
 
-################################
 #### Relationship with depth 
 
-#### Define dataframe that relates differences to depth 
+## Define dataframe that relates differences to depth 
 # Identify the subset of nodes at which there were detections:
 nodes_with_detections <- unique(validation$mesh_ID)
 # Determine the depth of each node below sea level 
@@ -467,18 +482,14 @@ node_depth_mean$mean <- h$h[match(node_depth_mean$node, h$ID)]
 node_depth_mean$mean <- abs(node_depth_mean$mean) *-1
 table(is.na(node_depth_mean$mean)) 
 
-# Add depths to dataframe
+## Add depths to dataframe
 sort(unique(node_depth_mean$node))
 sort(unique(validation$mesh_ID))
 validation$node_depth_mean <- 
   node_depth_mean$mean[match(validation$mesh_ID, node_depth_mean$node)]
 
-#### Plot figure 
-save <- TRUE
-if(save) png("./fig/val_temp_bottom_results_depth.png",
-             height = 10, width = 6, units = "in", res = 600)
-pp <- par(oma = c(2, 2, 2, 2))
-yat <- seq(-2, 0.8, by = 0.4)
+## Plot figure 
+yat <- seq(-1, 2, by = 0.5)
 ylim <- range(yat)
 xat <- seq(0, 150, by = 30)
 xlabels <- xat
@@ -487,17 +498,18 @@ plot(abs(validation$node_depth_mean), validation$diff,
      axes = FALSE, xlab = "", ylab = "",
      xlim = xlim,
      ylim = ylim,
-     cex = 1,
-     pch = 21,
-     col = scales::alpha("dimgrey", 0.5),
-     bg = scales::alpha("dimgrey", 0.25))
+     type = "p", pch = 21,  col = "black", bg = "black", cex = cex.pch)
 lines(xlim, c(0, 0), lwd = 2, lty = 3, col = "black")
 axis(side = 1, xat, xlabels, cex.axis = cex.axis, pos = ylim[1])
 axis(side = 2, yat, cex.axis = cex.axis, pos = xlim[1], las = TRUE)
-mtext(side = 1, "Mean Depth (m)", cex = cex, line = 2)
+mtext(side = 1, "Mean depth (m)", cex = cex, line = 2)
 mtext(side = 2, 
-      expression(paste(Delta * T, " = ", T[o] - T[p], " (", degree, "C)")), 
-      cex = cex, line = 2.5)
+      expression(paste(T[M] - T[O], " (", degree, "C)")), 
+      cex = cex, line = line.ylab)
+add_label("D")
+
+
+#### Save figures 
 par(pp)
 if(save) dev.off()
 
