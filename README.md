@@ -83,6 +83,7 @@ model skill resulting from model updates.
         below); <br/><br/>
 3.  **`R/`** contains scripts for data processing and analysis:
       - `define_global_param.R` defines global parameters;
+      - `define_helpers.R` defines helper functions;
       - `process_data_raw.R` processes raw data;
       - `analyse_study_site.R` visualises the study site;
       - `analyse_temp_bottom.R` implements the validation analysis for
@@ -98,7 +99,8 @@ in the online version of this repository.
 
 ## Workflow
 
-1.  **Define global parameters** via `define_global_param.R`.
+1.  **Define global parameters** via `define_global_param.R` and
+    `define_helpers.R`.
 
 2.  **Process raw data** via `process_data_raw.R`.
 

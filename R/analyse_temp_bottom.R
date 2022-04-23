@@ -16,6 +16,7 @@
 
 #### Wipe workspace and source essential packages and variables
 source("./R/define_global_param.R")
+source("R/helpers.R")
 
 #### Load data 
 # Spatial fields 
@@ -76,8 +77,11 @@ if(implement_validate){
   validation <- readRDS("./data/wc/val_temp_bottom.rds")
 }
 
-#### Fix validation differences (model - observation)
+#### Process validation dataset 
+# Fix validation differences (model - observation)
 validation$diff <- validation$wc - validation$obs
+# Define month/year categories 
+validation$mm_yy <- Tools4ETS::mmyy(validation$date)
 
 #### Standard checks 
 check <- FALSE
@@ -326,40 +330,7 @@ if(save) dev.off()
 ################################
 #### Validation results 
 
-################################
-#### Summary statistics 
 
-#### Correlation
-nrow(validation)
-cor(validation$obs, validation$wc)
-# 0.9846246
-cor(validation$obs, validation$wc, method = "spearman")
-# 0.9814745
-
-#### Monthly RMSE
-rmse <- 
-  validation %>%
-  dplyr::mutate(mm_yy = Tools4ETS::mmyy(date)) %>%
-  dplyr::group_by(mm_yy) %>%
-  dplyr::mutate(se = (wc - obs)^2) %>%
-  dplyr::summarise(rmse = sqrt(mean(se)))
-
-#### Distribution of differences
-utils.add::basic_stats(validation$diff)
-
-#### Examine ordered errors
-rmse %>% dplyr::arrange()
-
-#### Examine the % improvement from 2016 - 17 
-improvement <- (((rmse$rmse[1:4] - rmse$rmse[13:16])/rmse$rmse[1:4]) * 100) %>% sort() 
-# 77.09852 81.08708 88.16038 90.68037
-mean(improvement)
-
-#### Write tidy table with RMSEs to file 
-rmse %>% dplyr::select(Month = mm_yy, Score = rmse) %>%
-  dplyr::mutate(Score = round(Score, 2), 
-                Score = add_lagging_point_zero(Score, 2)) %>%
-  tidy_write(file = "./fig/val_temp_bottom_results_rmse_monthly.txt")
 
 
 ################################
@@ -512,6 +483,192 @@ add_label("D")
 #### Save figures 
 par(pp)
 if(save) dev.off()
+
+
+################################
+#### Model performance metrics 
+
+#### Distribution of differences
+utils.add::basic_stats(validation$diff)
+
+#### Define metric names and tidy table names
+metrics <- c("MB", "NMB", "ME", "NME", "RMSE", "NRMSE", "R", "d")
+cols    <- 
+  data.frame(
+    raw = factor(c("n", "o_hat", "m_hat", 
+                   "sigma_o", "sigma_m", "r", 
+                   "mb", "me", "rmse", "nmb", 
+                   "nme", "nrmse", "d"),
+                 levels = c("n", "m_hat", "o_hat", 
+                            "sigma_m", "sigma_o", 
+                            "mb", "nmb", "me", "nme", 
+                            "rmse", "nrmse", "r", "d"
+                 )),
+    pro = c("n", "hat O", "hat M",
+            "Sigma O", "Sigma M", 
+            "R", "MB", "ME", "RMSE", 
+            "NMB", "NME", "NRMSE", "d")) %>%
+  dplyr::arrange(raw) %>%
+  dplyr::mutate(raw = as.character(raw))
+
+#### Analyse overall model skill
+skill <- calc_skill_metrics(validation = validation)
+skill <- dplyr::as_tibble(skill)
+skill <- skill[, cols$raw]
+for(i in 2:ncol(skill)) skill[, i] <- tidy_numbers(skill[, i], digits = 2, ignore = FALSE) 
+tidy_write(skill, file = "./fig/val_temp_bottom_results_metrics_overall.txt")
+
+#### Analyse skill by month
+## Get skill
+skill <- calc_skill_metrics(validation = validation, "mm_yy")
+skill$mm_yy <- paste0(substr(skill$mm_yy, 4, 8), "-", substr(skill$mm_yy, 1, 2))
+## Write tidy table
+skill_tidy           <- dplyr::as_tibble(skill)
+skill_tidy           <- skill_tidy[, c("mm_yy", cols$raw)]
+colnames(skill_tidy) <- c("Time (months)", cols$pro)
+for(i in 3:ncol(skill_tidy)) 
+  skill_tidy[, i] <- tidy_numbers(skill_tidy[, i], digits = 2, ignore = FALSE) 
+tidy_write(skill_tidy, 
+           file = "./fig/val_temp_bottom_results_metrics_by_month.txt")
+## Visualise skill
+# Set up graphical param 
+skill$n_scale <- log10(skill$n)
+col_param     <- 
+  pretty_cols_brewer(zlim = c(2, 4.5), #range(skill$n_scale), 
+                     pal = function(...) viridis::viridis(..., direction = -1))
+skill$col     <- col_param$col[findInterval(skill$n_scale, col_param$breaks)]
+# Make plot
+png("./fig/val_temp_bottom_metrics_by_month.png", 
+    height = 6, width = 7, units = "in", res = 300)
+pp <- par(mfrow = c(4, 2), oma = c(3, 3, 1, 5), mar = c(2, 2, 2, 2))
+lapply(1:length(metrics), function(i){
+  # i = 1
+  pretty_plot(skill$mm_yy, skill[, tolower(metrics[i])], 
+              pretty = list(list(n = 5), list(n = 4)),
+              xlab = "", ylab = "", 
+              type = "n"
+              )
+  nrw <- nrow(skill)
+  l0 <- 1:(nrw-1)
+  l1 <- 2:nrw
+  arrows(x0 = l0, 
+         y0 = skill[l0, tolower(metrics[i])], 
+         x1 = l1, 
+         y1 = skill[l1, tolower(metrics[i])], 
+         col = skill$col[l0], 
+         length = 0)
+  points(1:nrw, skill[, tolower(metrics[i])], 
+         pch = 21, col = skill$col, bg = skill$col)
+  mtext(side = 2, metrics[i], line = 2.5)
+  mtext(side = 3, LETTERS[i], font = 2, adj = 0)
+}) %>% invisible()
+mtext(side = 1, "Time (months)", outer = TRUE, line = 1)
+par(pp)
+# Add colour bar (log scale)
+xlim <- range(col_param$breaks)
+at   <- log10(c(100, 1000, 10000))
+xlb  <- c(100, 1000, 10000)
+col_param_paa <- pretty_axis(side = 4,
+                             lim = list(xlim),
+                             axis = list(at = at, labels = xlb, cex.axis = 0.75),
+                             control_axis = list(las = TRUE),
+                             add = FALSE)
+TeachingDemos::subplot(
+  add_colour_bar(data.frame(x = col_param$breaks,
+                            col = c(col_param$col, NA)),
+                 pretty_axis_args = col_param_paa,
+                 mtext_args = list(side = 4, 
+                                   expression("Number of observations (" * italic(n) * ")"), 
+                                   line = 3.25)
+  ), 
+  x = c(16.25, 16.5), y = c(0, 1))
+dev.off()
+
+#### Analyse skill by node 
+## Get skill
+skill <- 
+  calc_skill_metrics(validation = validation, "mesh_ID") %>%
+  dplyr::arrange(desc(n)) %>%
+  dplyr::mutate(ID = (1:dplyr::n())-1)
+## Write tidy table
+skill_tidy           <- dplyr::as_tibble(skill)
+skill_tidy           <- skill_tidy[, c("ID", "mesh_ID", cols$raw)]
+colnames(skill_tidy) <- c("ID", "Node", cols$pro)
+for(i in 4:ncol(skill_tidy)) 
+  skill_tidy[, i] <- tidy_numbers(skill_tidy[, i], digits = 2, ignore = FALSE) 
+tidy_write(skill_tidy, 
+           file = "./fig/val_temp_bottom_results_metrics_by_node.txt")
+## Visualise skill
+# Set up graphical param 
+skill$ID      <- factor(skill$ID)
+skill$n_scale <- log10(skill$n)
+col_param     <- 
+  pretty_cols_brewer(zlim = c(0, 5), #range(skill$n_scale), 
+                     pal = function(...) viridis::viridis(..., direction = -1))
+skill$col     <- col_param$col[findInterval(skill$n_scale, col_param$breaks)]
+# Make plot
+png("./fig/val_temp_bottom_metrics_by_node.png", 
+    height = 6, width = 7, units = "in", res = 300)
+pp <- par(mfrow = c(4, 2), oma = c(3, 3, 1, 5), mar = c(2, 2, 2, 2))
+lapply(1:length(metrics), function(i){
+  # i = 1
+  paa <- list(pretty = list(list(n = 20), list(n = 4)), 
+              control_axis = list(las = TRUE))
+  skill_for_metric <- skill[, c("ID", tolower(metrics[i]), "col")]
+  skill_for_metric <- skill_for_metric[complete.cases(skill_for_metric), ]
+  pretty_plot(skill_for_metric$ID, 
+              skill_for_metric[, tolower(metrics[i])], 
+              pretty_axis_args = paa,
+              xlab = "", ylab = "", 
+              type = "n")
+  points(skill_for_metric$ID, 
+         skill_for_metric[, tolower(metrics[i])], 
+         pch = 21, 
+         col = skill_for_metric$col, 
+         bg = skill_for_metric$col)
+  mtext(side = 2, metrics[i], line = 2.5)
+  mtext(side = 3, LETTERS[i], font = 2, adj = 0)
+}) %>% invisible()
+mtext(side = 1, "Node ID", outer = TRUE, line = 1)
+par(pp)
+# Add colour bar (log scale)
+xlim <- range(col_param$breaks)
+at   <- log10(c(1, 10, 100, 1000, 10000))
+xlb  <- c(1, 10, 100, 1000, 10000)
+col_param_paa <- pretty_axis(side = 4,
+                             lim = list(xlim),
+                             axis = list(at = at, labels = xlb, cex.axis = 0.75),
+                             control_axis = list(las = TRUE),
+                             add = FALSE)
+TeachingDemos::subplot(
+  add_colour_bar(data.frame(x = col_param$breaks,
+                            col = c(col_param$col, NA)),
+                 pretty_axis_args = col_param_paa,
+                 mtext_args = list(side = 4, 
+                                   expression("Number of observations (" * italic(n) * ")"), 
+                                   line = 3.25)
+  ), 
+  x = c(37.25, 37.75), y = c(0, 1))
+dev.off()
+
+#### Monthly RMSE
+## Get monthly RMSE scores 
+rmse <- 
+  validation %>%
+  dplyr::group_by(mm_yy) %>%
+  dplyr::mutate(se = (wc - obs)^2) %>%
+  dplyr::summarise(rmse = sqrt(mean(se)))
+## Examine ordered RMSE
+rmse %>% dplyr::arrange()
+## Examine the % improvement from 2016 - 17 
+improvement <- (((rmse$rmse[1:4] - rmse$rmse[13:16])/rmse$rmse[1:4]) * 100) %>% sort() 
+# 77.09852 81.08708 88.16038 90.68037
+mean(improvement)
+## Write tidy table with RMSEs to file 
+rmse %>% dplyr::select(Month = mm_yy, Score = rmse) %>%
+  dplyr::mutate(Score = round(Score, 2), 
+                Score = add_lagging_point_zero(Score, 2)) %>%
+  tidy_write(file = "./fig/val_temp_bottom_results_rmse_monthly.txt")
 
 
 #### End of code. 
