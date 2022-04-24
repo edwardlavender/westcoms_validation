@@ -215,8 +215,10 @@ if(run){
   wc_stats <-
     wc %>% 
     dplyr::group_by(timestamp) %>%
-    dplyr::summarise(median = median(wc), 
-                     iqr = IQR(wc))
+    dplyr::summarise(median = median(wc),
+                     mad    = mad(wc), 
+                     sd     = sd(wc),
+                     iqr    = IQR(wc))
   t2 <- Sys.time()
   difftime(t2, t1)
   saveRDS(wc_stats, "./data/wc/ss_temp_bottom_stats.rds")
@@ -225,6 +227,8 @@ if(run){
 }
 
 #### Summarise summary statistics
+median(wc_stats$mad)
+median(wc_stats$sd)
 median(wc_stats$iqr)
 # 0.3900328
 
