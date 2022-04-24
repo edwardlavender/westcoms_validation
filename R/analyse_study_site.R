@@ -4,6 +4,7 @@
 
 #### This script: 
 # 1) Maps the study site 
+# 2) Analyses spatial variation in bottom temperatures across the study site. 
 
 #### Steps preceding this script: 
 # 1) Define global parameters     (define_global_param.R)
@@ -21,11 +22,13 @@ source("./R/define_global_param.R")
 #### Load data 
 # Spatial fields 
 mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
+mesh_mpa  <- readRDS("./data/spatial/mesh/mesh_around_nodes_in_mpa.rds")
 coast     <- readRDS("./data/spatial/coast/coast.rds")
 mpa       <- readRDS("./data/spatial/mpa/mpa.rds")
 # Validation datasets
 val_tb    <- readRDS("./data/wc/val_temp_bottom.rds")
 val_tp    <- readRDS("./data/wc/val_temp_profile_obs.rds")
+
 
 ################################
 ################################
@@ -160,6 +163,82 @@ if(!quick){
 #### Save
 par(pp)
 if(save) dev.off()
+
+
+################################
+################################
+#### Temperature variation across the MPA 
+
+#### Define data for extraction 
+dates       <- utils.add::seq_range(range(val_tb$date), "days")
+date_names  <- date_name(dates)
+hours       <- 0:23
+layers      <- 10
+mesh_IDs    <- as.integer(as.character(mesh_mpa$ID))
+wc <- 
+  expand.grid(date_name = date_names, 
+              hour = hours, 
+              layer = layers, 
+              mesh_ID = mesh_IDs) %>%
+  dplyr::arrange(date_name, 
+                 hour, 
+                 mesh_ID)
+str(wc)
+
+#### Implement extraction (~3.28 hrs)
+run <- FALSE
+if(run){
+  # Implement extraction
+  t1 <- Sys.time()
+  wc <- fvcom.tbx::extract(dat = wc, # [1:10, ], 
+                           dir2load = wc_con, 
+                           extension = ".mat", 
+                           cl = parallel::makeCluster(10L)
+                           )
+  t2 <- Sys.time()
+  # Define time stamps 
+  wc$date           <- date_name(wc$date_name, define = "date")
+  wc$hour_char      <- as.character(wc$hour)
+  pos               <- wc$hour < 10
+  wc$hour_char[pos] <- paste0("0", wc$hour_char[pos])
+  wc$timestamp <- fasttime::fastPOSIXct(paste0(wc$date, " ", wc$hour_char, ":00:00"), tz = "UTC")
+  # Save 
+  saveRDS(wc, "./data/wc/ss_temp_bottom.rds")
+} else {
+  wc <- readRDS("./data/wc/ss_temp_bottom.rds")
+}
+
+#### Generate summary statistics (~10 s)
+run <- FALSE
+if(run){
+  t1 <- Sys.time()
+  wc_stats <-
+    wc %>% 
+    dplyr::group_by(timestamp) %>%
+    dplyr::summarise(median = median(wc), 
+                     iqr = IQR(wc))
+  t2 <- Sys.time()
+  difftime(t2, t1)
+  saveRDS(wc_stats, "./data/wc/ss_temp_bottom_stats.rds")
+} else {
+  wc_stats <- readRDS("./data/wc/ss_temp_bottom_stats.rds")
+}
+
+#### Summarise summary statistics
+median(wc_stats$iqr)
+# 0.3900328
+
+#### Visualise summary statistics
+png("./fig/ss_temp_bottom_iqr.png", 
+    height = 4, width = 6, units = "in", res = 600)
+pretty_plot(wc_stats$timestamp, wc_stats$iqr, 
+            pretty_axis_args = list(axis = list(list(format = "%b-%y"), 
+                                                list())),
+            xlab = "", ylab = "",
+            type = "l")
+mtext(side = 1, "Time (months)", line = 2.4)
+mtext(side = 2, expression("IQR (" * degree * "C)"), line = 2)
+dev.off()
 
 
 #### End of code. 
