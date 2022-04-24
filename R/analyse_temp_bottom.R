@@ -16,7 +16,7 @@
 
 #### Wipe workspace and source essential packages and variables
 source("./R/define_global_param.R")
-source("R/helpers.R")
+source("R/define_helpers.R")
 
 #### Load data 
 # Spatial fields 
@@ -330,9 +330,6 @@ if(save) dev.off()
 ################################
 #### Validation results 
 
-
-
-
 ################################
 #### Visualisation 
 
@@ -520,8 +517,10 @@ tidy_write(skill, file = "./fig/val_temp_bottom_results_metrics_overall.txt")
 
 #### Analyse skill by month
 ## Get skill
-skill <- calc_skill_metrics(validation = validation, "mm_yy")
-skill$mm_yy <- paste0(substr(skill$mm_yy, 4, 8), "-", substr(skill$mm_yy, 1, 2))
+skill           <- calc_skill_metrics(validation = validation, "mm_yy")
+skill$mm_yy     <- paste0(substr(skill$mm_yy, 4, 8), "-", substr(skill$mm_yy, 1, 2))
+skill$date      <- as.Date(paste0(skill$mm_yy, "-01"))
+skill$timestamp <- as.POSIXct(paste(skill$date, "00:00:00"), tz = "UTC")
 ## Write tidy table
 skill_tidy           <- dplyr::as_tibble(skill)
 skill_tidy           <- skill_tidy[, c("mm_yy", cols$raw)]
@@ -540,24 +539,26 @@ skill$col     <- col_param$col[findInterval(skill$n_scale, col_param$breaks)]
 # Make plot
 png("./fig/val_temp_bottom_metrics_by_month.png", 
     height = 6, width = 7, units = "in", res = 300)
-pp <- par(mfrow = c(4, 2), oma = c(3, 3, 1, 5), mar = c(2, 2, 2, 2))
+pp <- par(mfrow = c(4, 2), oma = c(3, 3, 1, 5.5), mar = c(2, 2, 2, 2))
 lapply(1:length(metrics), function(i){
   # i = 1
-  pretty_plot(skill$mm_yy, skill[, tolower(metrics[i])], 
-              pretty = list(list(n = 5), list(n = 4)),
+  pretty_plot(skill$timestamp, skill[, tolower(metrics[i])], 
+              pretty = list(list(n = 5), list(n = 4)), 
+              axis = list(list(format = "%b-%y"), 
+                          list()),
               xlab = "", ylab = "", 
               type = "n"
-              )
+  )
   nrw <- nrow(skill)
   l0 <- 1:(nrw-1)
   l1 <- 2:nrw
-  arrows(x0 = l0, 
+  arrows(x0 = skill$timestamp[l0], 
          y0 = skill[l0, tolower(metrics[i])], 
-         x1 = l1, 
+         x1 = skill$timestamp[l1], 
          y1 = skill[l1, tolower(metrics[i])], 
          col = skill$col[l0], 
          length = 0)
-  points(1:nrw, skill[, tolower(metrics[i])], 
+  points(skill$timestamp, skill[, tolower(metrics[i])], 
          pch = 21, col = skill$col, bg = skill$col)
   mtext(side = 2, metrics[i], line = 2.5)
   mtext(side = 3, LETTERS[i], font = 2, adj = 0)
@@ -579,9 +580,11 @@ TeachingDemos::subplot(
                  pretty_axis_args = col_param_paa,
                  mtext_args = list(side = 4, 
                                    expression("Number of observations (" * italic(n) * ")"), 
-                                   line = 3.25)
+                                   line = 3.1)
   ), 
-  x = c(16.25, 16.5), y = c(0, 1))
+  x = c(max(skill$timestamp) + 32*24*60*60, 
+        max(skill$timestamp)+ 37*24*60*60), 
+  y = c(0, 1))
 dev.off()
 
 #### Analyse skill by node 
