@@ -594,7 +594,8 @@ lapply(1:length(metrics), function(i){
   points(skill$timestamp, skill[, tolower(metrics[i])], 
          pch = 21, col = skill$col, bg = skill$col)
   mtext(side = 2, metrics[i], line = 2.5)
-  mtext(side = 3, LETTERS[i], font = 2, adj = 0)
+  mtext(side = 3, letters[i], font = 2, adj = 0)
+  # mtext(side = 3, LETTERS[i], font = 2, adj = 0)
 }) %>% invisible()
 mtext(side = 1, "Time (months)", outer = TRUE, line = 1)
 par(pp)
@@ -663,7 +664,8 @@ lapply(1:length(metrics), function(i){
          col = skill_for_metric$col, 
          bg = skill_for_metric$col)
   mtext(side = 2, metrics[i], line = 2.5)
-  mtext(side = 3, LETTERS[i], font = 2, adj = 0)
+  mtext(side = 3, letters[i], font = 2, adj = 0)
+  # mtext(side = 3, LETTERS[i], font = 2, adj = 0)
 }) %>% invisible()
 mtext(side = 1, "Node ID", outer = TRUE, line = 1)
 par(pp)

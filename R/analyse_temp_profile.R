@@ -278,7 +278,7 @@ if(save) png("./fig/val_temp_profile_results_profiles.png",
              height = 7, width = 9, units = "in", res = 600)
 pp <- par(mfrow = c(2, 4), oma = c(1, 5, 5, 1), mar = c(1, 3.5, 4.75, 2))
 # Loop over each recapture event
-mapply(obs_ls, preds_ls, LETTERS[1:length(obs_ls)], FUN = function(o, p, main){
+mapply(obs_ls, preds_ls, letters[1:length(obs_ls)], FUN = function(o, p, main){
   
   #### Ensure we are dealing with the same event
   stopifnot(all(o$event_id %in% p$event_id) & all(p$event_id %in% o$event_id))
@@ -309,7 +309,7 @@ mapply(obs_ls, preds_ls, LETTERS[1:length(obs_ls)], FUN = function(o, p, main){
   mtext(side = 3, text = paste0("   (", day, ")"), cex = cex.axis-0.2, adj = -0.02, line = 2.75)
   
   #### Add legend
-  if(main == "A"){
+  if(main == "a"){
     legend(x = 13.75, -150,
            xjust = 1,
            pch = c(21, 21),
