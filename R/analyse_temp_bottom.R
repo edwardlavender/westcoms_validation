@@ -336,18 +336,25 @@ if(save) dev.off()
 #### Local parameters
 cex.label <- 1.7
 cex       <- 1.5
-cex.axis  <- cex - 0.2
+cex.axis  <- 1.7
 cex.pch   <- 0.2
-line.ylab <- 2.5
+line.ylab <- 3
+line.xlab <- 3
+line.main <- 0.5
 adj.label <- 0
 add_label <- 
-  function(x) mtext(side = 3, x, font = 2, cex = cex.label, adj = adj.label)
+  function(x) mtext(side = 3, x, font = 2, cex = cex.label, adj = adj.label, line = line.main)
 
 #### Set up figure 
 if(save) png("./fig/val_temp_bottom_results.png",
-             height = 8, width = 8.5, units = "in",  res = 600)
-pp <- par(mfrow = c(2, 2), 
-          oma = c(2, 2, 1, 1), 
+             height = 10, width = 9, units = "in",  res = 600)
+
+mat <- matrix(c(1, 2, 
+                3, 4, 
+                5, 5), ncol = 2, byrow = TRUE)
+layout(mat)
+pp <- par(
+          oma = c(2.5, 2.5, 1, 1), 
           mar = c(3, 3, 3, 3))
 
 #### Histogram of differences
@@ -369,7 +376,7 @@ mtext_args <-
   list(list(side = 1, 
             text = expression(paste(T[M] - T[O], " (", degree, "C)")), 
             cex = cex, 
-            line = 2.5),
+            line = line.xlab),
        list(side = 2, 
             text = expression(paste("Frequency (x", 10^4, ")")), 
             cex = cex, 
@@ -378,7 +385,7 @@ mtext_args <-
 lapply(mtext_args, function(elm) do.call(mtext, elm))
 lines(x = c(0, 0), y = c(0, 3.5 * pscale), lty = 3, lwd = 2)
 # lines(rep(mean(validation$diff), 2), c(0, 3.5 * pscale), lty = 2)
-add_label("A")
+add_label("a")
 
 
 #### Time series of observations/predictions 
@@ -390,7 +397,7 @@ paa <- list(side = 1:2,
             control_axis = list(cex.axis = cex.axis, las = TRUE)
             )
 mta <- 
-  list(list(side = 1, "Time (months)", line = 2.5, cex = cex),
+  list(list(side = 1, "Time (months)", line = line.xlab, cex = cex),
        list(side = 2, 
             text = expression(paste("Temperature (T,", degree, "C)")), 
             line = line.ylab, cex = cex)
@@ -423,7 +430,8 @@ legend(x = axis_ls[[1]]$lim[1] + (axis_ls[[1]]$lim[2] - axis_ls[[1]]$lim[1])/4,
        x.intersp = 1
 )
 par(px)
-add_label("B")
+add_label("b")
+
 
 #### Plot difference through time
 mta[[2]]$text <- expression(paste(T[M]- T[O], " (", degree, "C)"))
@@ -436,7 +444,7 @@ axis_ls <-
   )
 lines(axis_ls[[1]]$lim, c(0, 0), lwd = 2, lty = 3, col = "black")
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], ticksize = 0.02, lwd = 0.1)
-add_label("C")
+add_label("c")
 
 
 #### Relationship with depth 
@@ -470,11 +478,36 @@ plot(abs(validation$node_depth_mean), validation$diff,
 lines(xlim, c(0, 0), lwd = 2, lty = 3, col = "black")
 axis(side = 1, xat, xlabels, cex.axis = cex.axis, pos = ylim[1])
 axis(side = 2, yat, cex.axis = cex.axis, pos = xlim[1], las = TRUE)
-mtext(side = 1, "Mean depth (m)", cex = cex, line = 2)
+mtext(side = 1, "Mean depth (m)", cex = cex, line = line.xlab)
 mtext(side = 2, 
       expression(paste(T[M] - T[O], " (", degree, "C)")), 
-      cex = cex, line = line.ylab)
-add_label("D")
+      cex = cex, line = line.ylab - 0.5)
+add_label("d")
+
+
+#### Plot differences by node 
+# Define node IDs (0,...,36)
+node_IDs <- 
+  validation %>%
+  dplyr::group_by(mesh_ID) %>%
+  dplyr::summarise(n = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::arrange(dplyr::desc(n)) %>%
+  dplyr::mutate(ID = (1:dplyr::n()) - 1)
+validation$ID <- node_IDs$ID[match(validation$mesh_ID, node_IDs$mesh_ID)]
+validation$ID <- factor(validation$ID, levels = node_IDs$ID)
+validation    <- validation %>% dplyr::arrange(ID)
+paa <- list(pretty = list(list(n = 20), list(n = 4)), 
+            control_axis = list(las = TRUE, cex.axis = cex.axis))
+pretty_boxplot(validation$ID, validation$diff, 
+               pretty_axis_args = paa,
+               xlab = "", ylab = "",
+               pch = ".", varwidth = TRUE)
+mtext(side = 1, "Node ID", cex = cex, line = line.xlab)
+mtext(side = 2, 
+      expression(paste(T[M] - T[O], " (", degree, "C)")), 
+      cex = cex, line = line.ylab - 1)
+add_label("e")
 
 
 #### Save figures 
