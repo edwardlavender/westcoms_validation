@@ -521,6 +521,24 @@ TeachingDemos::subplot(
 
 if(save) dev.off()
 
+#### Examine the influence of shallow-water nodes on the seasonal pattern 
+# ... by comparing ME estimates for the whole dataset versus a subsetted dataset
+# ... without shallow-water receivers
+skill_wi_shallow <- 
+  sim_stats_avg %>% 
+  dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>%
+  dplyr::select(mm_yy, me)
+skill_wo_shallow <- 
+  sim_stats %>% 
+  dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>%
+  dplyr::filter(!(node %in% node_IDs$mesh_ID[node_IDs$depth < 25])) %>%
+  dplyr::group_by(mm_yy) %>%
+  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean)) %>%
+  dplyr::select(-node) %>%
+  dplyr::slice(1L) %>%
+  dplyr::select(mm_yy, me)
+
+range(skill_wi_shallow$me - skill_wo_shallow$me) %>% sort()
 
 ################################
 ################################
