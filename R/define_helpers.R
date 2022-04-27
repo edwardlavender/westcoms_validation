@@ -8,6 +8,31 @@
 
 ################################
 ################################
+#### get_season()
+
+#### Define a function to assign the 'season' given an integer month 
+# 'Seasons' are defined to facilitate description of the raw data
+# ... and thus are defined according to the distribution of raw data
+# ... rather than 'formal' definitions (e.g. as in lunar::terrestrial.season)
+
+get_season <- 
+  function(month){
+    if(month >= 1 & month < 3){
+      season <- "Winter"
+    } else if(month >= 3 & month < 6) {
+      season <- "Spring"
+    } else if(month >= 6 & month < 8){
+      season <- "Summer"
+    } else {
+      season <- "Autumn/Winter"
+    }
+    return(season)
+  }
+get_season <- Vectorize(get_season)
+
+
+################################
+################################
 #### calc_skill_metrics()
 
 #### Define a metric to calculate model skill metrics 
