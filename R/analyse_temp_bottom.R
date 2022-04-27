@@ -737,7 +737,7 @@ if(save) png("./fig/val_temp_bottom_metrics_by_node_map.png",
 pp <- par(oma = c(1, 1, 1, 2))
 # Define colour bar 
 mesh_focal$mb <- sim_stats_avg$mb[match(mesh_focal$ID, as.character(sim_stats_avg$node))]
-zlim <- range(mesh_focal$mb, na.rm = TRUE)
+zlim <- c(-0.5, 1.5) # range(mesh_focal$mb, na.rm = TRUE)
 col_param     <- 
   pretty_cols_brewer(zlim = zlim,
                      n_breaks = 100,
@@ -800,7 +800,26 @@ TeachingDemos::subplot(
 
 if(save) dev.off()
 
-
+#### Examine ensemble-average skill metrics in relation to depth 
+mod <- lm(mb ~ depth, data = sim_stats_avg)
+summary(mod)
+png("./fig/val_temp_bottom_metrics_by_node.png", 
+    height = 5, width = 5, units = "in", res = 600)
+sim_stats_avg$col     <- col_param$col[findInterval(sim_stats_avg$mb, col_param$breaks)]
+pretty_predictions_1d(mod, 
+                      add_xlab = list(text = "Depth (m)", line = 2), 
+                      add_ylab = list(text = expression("MB (" * degree * "C)"), line = 2),
+                      add_main = NULL,
+                      add_points = list(pch = 21,
+                                        bg = sim_stats_avg$col, 
+                                        col = sim_stats_avg$col
+                                        ))
+sim_stats_avg$id <- node_IDs$ID[match(sim_stats_avg$node, node_IDs$mesh_ID)]
+basicPlotteR::addTextLabels(sim_stats_avg$depth, sim_stats_avg$mb, 
+                            sim_stats_avg$id, 
+                            col.label = "black", 
+                            cex.pt = 1.25)
+dev.off()
 
 
 #### End of code. 
