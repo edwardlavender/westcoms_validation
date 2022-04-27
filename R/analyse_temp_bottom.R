@@ -21,7 +21,9 @@ source("R/define_helpers.R")
 
 #### Load data 
 # Spatial fields 
-h          <- readRDS("./data/spatial/mesh/mesh_h.rds")
+mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes_bng.rds")
+h         <- readRDS("./data/spatial/mesh/mesh_h.rds")
+coast     <- readRDS("./data/spatial/coast/coast_bng.rds")
 # Validation data 
 validation <- readRDS("./data/wc/val_temp_bottom.rds")
 
@@ -610,7 +612,7 @@ for(i in 3:ncol(skill_tidy))
 tidy_write(skill_tidy, 
            file = "./fig/val_temp_bottom_results_metrics_by_node.txt")
 
-#### Visualise simulated scores through time 
+#### Visualise simulated scores by nodes 
 
 ## Define graphical parameters
 # Colours for node-specific results
@@ -712,6 +714,93 @@ TeachingDemos::subplot(
   x = c(max(sim_stats$ID)+0.5, max(sim_stats$ID) + 0.75), y = c(0, 1))
 
 if(save) dev.off()
+
+#### Examine spatial clustering of high skill nodes
+
+#### Define spatial layers 
+# Define boundaries of focal area of interest
+mesh_focal    <- mesh[mesh$ID %in% node_IDs$mesh_ID, ]
+ext <- raster::extent(mesh_focal)
+ext <- flapper::update_extent(ext, 1000)
+# Define mesh cell coordinates and IDs 
+mesh_focal_xy    <- find_xy(node_IDs$mesh_ID, mesh_focal)
+mesh_focal_xy$ID <- node_IDs$ID[match(mesh_focal_xy$mesh_ID, node_IDs$mesh_ID)]
+# Crop spatial layers to region of interest
+mesh_focal  <- raster::crop(mesh, ext)
+coast_focal <- raster::crop(coast, ext)
+
+#### Define figure
+# Set up to save
+save <- TRUE
+if(save) png("./fig/val_temp_bottom_metrics_by_node_map.png",
+             height = 8, width = 6.5, units = "in",  res = 600)
+pp <- par(oma = c(1, 1, 1, 2))
+# Define colour bar 
+mesh_focal$mb <- sim_stats_avg$mb[match(mesh_focal$ID, as.character(sim_stats_avg$node))]
+zlim <- range(mesh_focal$mb, na.rm = TRUE)
+col_param     <- 
+  pretty_cols_brewer(zlim = zlim,
+                     n_breaks = 100,
+                     pal = function(...) viridis::viridis(..., direction = -1))
+mesh_focal$col     <- col_param$col[findInterval(mesh_focal$mb, col_param$breaks)]
+
+# Define pretty axes 
+xlim <- ext[1:2]
+ylim <- ext[3:4]
+axis_ls <- 
+  pretty_axis(side = 1:4,
+              lim = list(xlim, ylim),
+              pretty = list(list(n = 3), list(n = 5)),
+              axis = list(list(),
+                          list(),
+                          list(labels = FALSE),
+                          list(labels = FALSE)), 
+              control_axis = list(las = TRUE, cex.axis = cex.axis - 0.5), 
+              control_sci_notation = list(magnitude = 16L, digits = 0))
+# Plot and add pretty axes
+raster::plot(coast_focal, 
+             xlim = xlim, ylim = ylim,
+             col = col_land, 
+             border = col_border, 
+             lwd = 0.25)
+# Add spatial fields 
+raster::plot(mesh_focal, col = mesh_focal$col, 
+             border = "royalblue", lwd = 0.5,
+             add = TRUE)
+basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
+                            mesh_focal_xy$ID, 
+                            col.label = "black", 
+                            cex.pt = 1, lwd = 1.5)
+
+# Add axes and labels 
+pretty_axis(axis_ls = axis_ls, add = TRUE)
+mtext(side = 1, "Easting", cex = cex, line = 2)
+mtext(side = 2, "Northing", cex = cex, line = 2)
+# Add north arrow and scale 
+add_north_arrow(170097.7, 741356, 
+                width = 5000/5, 
+                height = 8000/5)
+raster::scalebar(5000, xy = c(175000, 723000), 
+                 type = "line", 
+                 label = c("5 km"))
+
+col_param_paa <- pretty_axis(side = 4,
+                             lim = list(x = col_param$zlim),
+                             control_axis = list(las = TRUE, cex.axis = cex.axis - 0.5),
+                             add = FALSE)
+TeachingDemos::subplot(
+  add_colour_bar(data.frame(x = col_param$breaks,
+                            col = c(col_param$col, NA)),
+                 pretty_axis_args = col_param_paa,
+                 mtext_args = list(side = 4, 
+                                   expression("MB (" * degree * "C)"), 
+                                   line = 3.75, cex = cex)
+  ), 
+  x = c(181500, 182000), y = c(725000, 740000))
+
+if(save) dev.off()
+
+
 
 
 #### End of code. 
