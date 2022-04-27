@@ -345,7 +345,7 @@ if(save) dev.off()
 
 #### Calculate the number of observations in each depth bin through time 
 # Define a series of depth bins  
-breaks <- seq(0, 200, by = 20)
+breaks <- seq(0, 200, by = 25)
 # Calculate the number of observations in each bin 
 node_ts <- 
   validation %>% 
@@ -358,7 +358,7 @@ node_ts <-
                 timestamp  = as.POSIXct(paste(date, "00:00:00"), tz = "UTC")) %>%
   dplyr::arrange(bin, mm_yy)
 # Update bin labels to use the midpoint of each bin
-node_ts$bin <- paste(zoo::rollmean(breaks, 2)[node_ts$bin], "m")
+node_ts$bin <- paste0(breaks[node_ts$bin + 1], " m")
 node_ts$bin <- factor(node_ts$bin, levels = unique(node_ts$bin))
 
 #### Define graphical parameters for plot 
@@ -373,9 +373,9 @@ node_ts$col     <- col_param$col[findInterval(node_ts$n_node, col_param$breaks)]
 ## Set up plot to save 
 save <- TRUE
 if(save) png("./fig/val_temp_bottom_effort_depth_ts.png",
-             height = 6, width = 6, units = "in",  res = 600)
+             height = 5, width = 8, units = "in",  res = 600)
 pp <- par(mfrow = par_mf(length(unique(node_ts$bin))), 
-          oma = c(4, 4, 2, 2), 
+          oma = c(4, 4, 2, 5), 
           mar = c(2, 2, 2, 2))
 ## Make a plot for each depth bin 
 lapply(1:nrow(node_ts), function(i){
@@ -384,6 +384,7 @@ lapply(1:nrow(node_ts), function(i){
   # Define blank plot 
   pretty_plot(d$timestamp, d$n, 
               pretty_axis_args = list(
+                # pretty = list(n = 12),
                 x = list( x = range(node_ts$timestamp), 
                           y = range(d$n)),
                 axis = list(list(format = "%b-%y"), list())),
@@ -429,11 +430,11 @@ TeachingDemos::subplot(
                  pretty_axis_args = col_param_paa,
                  mtext_args = list(side = 4, 
                                    "Number of nodes", 
-                                   las = TRUE,
                                    line = 2)
   ), 
-  x = c(quantile(node_ts$timestamp, 0.21), quantile(node_ts$timestamp, 0.21) + 6*24*60*60), 
-  y = c(-10, 100),
+  x = c(quantile(node_ts$timestamp, 1) + 70*24*60*60, 
+        quantile(node_ts$timestamp, 1) + 75*24*60*60), 
+  y = c(45, 215),
 )
 ## Save
 if(save) dev.off()
