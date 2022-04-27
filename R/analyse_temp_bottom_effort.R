@@ -18,9 +18,11 @@ source("./R/define_global_param.R")
 
 #### Load data 
 # Spatial fields 
-mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
-coast     <- readRDS("./data/spatial/coast/coast.rds")
-mpa       <- readRDS("./data/spatial/mpa/mpa.rds")
+mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes_bng.rds")
+h         <- readRDS("./data/spatial/mesh/mesh_h.rds")
+bathy     <- raster::raster("./data/spatial/bathy/bathy_bng.tif")
+coast     <- readRDS("./data/spatial/coast/coast_bng.rds")
+mpa       <- readRDS("./data/spatial/mpa/mpa_bng.rds")
 # Validation
 validation <- readRDS("./data/wc/val_temp_bottom.rds")
 
@@ -57,6 +59,9 @@ which(!(
 # 37 locations:
 length(unique(validation$mesh_ID)) 
 sort(table(validation$mesh_ID)/nrow(validation)*100)
+# Depths
+utils.add::basic_stats(node_IDs$depth)
+utils.add::basic_stats(node_IDs$depth[4:nrow(node_IDs)])
 
 #### Total number of hours
 # All hours of the day:
@@ -117,9 +122,6 @@ spatial_effort <- lapply(validation_by_loc, function(df) {
 
 #### Define spatial fields
 # Project spatial fields 
-coast <- sp::spTransform(coast, bng)
-mesh  <- sp::spTransform(mesh, bng)
-mpa   <- sp::spTransform(mpa, bng)
 spatial_effort_sp <- 
   sp::SpatialPoints(spatial_effort[, c("long", "lat")], wgs84)
 spatial_effort_sp <- 
@@ -236,6 +238,204 @@ summary <-
                     bin = "weeks",
                     fun = list(mean = mean))
 lines(summary$mean$bin, summary$mean$stat, type = "b")
+if(save) dev.off()
+
+
+################################
+################################
+#### Depth map 
+
+#### Define node IDs 
+node_IDs <- 
+  validation %>%
+  dplyr::group_by(mesh_ID) %>%
+  dplyr::summarise(n = dplyr::n()) %>%
+  dplyr::ungroup() %>%
+  dplyr::arrange(dplyr::desc(n)) %>%
+  dplyr::mutate(ID = (1:dplyr::n()) - 1, 
+                depth = h$h[match(mesh_ID, h$ID)]) %>%
+  dplyr::select(ID, mesh_ID, n, depth)
+# Define tidy table
+node_IDs %>%
+  tidy_numbers(digits = 2) %>%
+  dplyr::select(`Node ID` = ID, 
+                Node = mesh_ID,
+                n = n, 
+                `Depth (m)` = depth
+                ) %>%
+  tidy_write("./fig/val_temp_bottom_effort_node_ids.txt")
+
+#### Define spatial layers 
+# Define boundaries of focal area of interest
+mesh_focal    <- mesh[mesh$ID %in% node_IDs$mesh_ID, ]
+ext <- raster::extent(mesh_focal)
+ext <- flapper::update_extent(ext, 1000)
+# Define mesh cell coordinates and IDs 
+mesh_focal_xy    <- find_xy(node_IDs$mesh_ID, mesh_focal)
+mesh_focal_xy$ID <- node_IDs$ID[match(mesh_focal_xy$mesh_ID, node_IDs$mesh_ID)]
+# Crop spatial layers to region of interest
+mesh_focal  <- raster::crop(mesh, ext)
+bathy_focal <- raster::crop(bathy, ext)
+bathy_focal <- raster::mask(bathy_focal, mesh_focal)
+coast_focal <- raster::crop(coast, ext)
+
+#### Define figure
+# Set up to save
+save <- TRUE
+if(save) png("./fig/val_temp_bottom_effort_depth_map.png",
+             height = 8, width = 6, units = "in",  res = 600)
+pp <- par(oma = c(1, 1, 1, 1))
+# Define pretty axes 
+xlim <- ext[1:2]
+ylim <- ext[3:4]
+axis_ls <- 
+  pretty_axis(side = 1:4,
+              lim = list(xlim, ylim),
+              pretty = list(list(n = 3), list(n = 5)),
+              axis = list(list(),
+                          list(),
+                          list(labels = FALSE),
+                          list(labels = FALSE)), 
+              control_axis = list(las = TRUE, cex.axis = cex.axis), 
+              control_sci_notation = list(magnitude = 16L, digits = 0))
+# Plot and add pretty axes
+
+raster::plot(coast_focal, 
+             xlim = xlim, ylim = ylim,
+             col = col_land, 
+             border = col_border, 
+             lwd = 0.25)
+# Add spatial fields 
+raster::plot(bathy_focal, 
+             col = scales::alpha(viridis::viridis(100), 0.75), 
+             add = TRUE)
+raster::plot(coast_focal, 
+             col = col_land, 
+             border = col_border, 
+             lwd = 0.25, 
+             add = TRUE)
+raster::lines(mesh_focal, col = "royalblue", lwd = 0.5)
+lapply(split(node_IDs, 1:nrow(node_IDs)), function(d){
+  m <- mesh[mesh$ID == d$mesh_ID, ]
+  raster::lines(m, col = "royalblue", lwd = 2)
+})
+basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
+                            mesh_focal_xy$ID, 
+                            col.label = "black", 
+                            cex.pt = 1, lwd = 1.5)
+
+# Add axes and labels 
+pretty_axis(axis_ls = axis_ls, add = TRUE)
+mtext(side = 1, "Easting", cex = cex, line = 2)
+mtext(side = 2, "Northing", cex = cex, line = 3)
+mtext(side = 4, "Depth (m)", cex = cex, line = 2)
+# Add north arrow and scale 
+add_north_arrow(170097.7, 741356, 
+                width = 5000/5, 
+                height = 8000/5)
+raster::scalebar(5000, xy = c(175000, 723000), 
+                 type = "line", 
+                 label = c("5 km"))
+if(save) dev.off()
+
+
+################################
+################################
+#### Depth time series
+
+#### Calculate the number of observations in each depth bin through time 
+# Define a series of depth bins  
+breaks <- seq(0, 200, by = 20)
+# Calculate the number of observations in each bin 
+node_ts <- 
+  validation %>% 
+  dplyr::mutate(depth = h$h[match(mesh_ID, h$ID)]) %>%
+  dplyr::mutate(bin = cut(depth, breaks, labels = FALSE)) %>%
+  dplyr::group_by(bin, mm_yy) %>%
+  dplyr::summarise(n = dplyr::n(), n_node = length(unique(mesh_ID))) %>%
+  dplyr::mutate(mm_yy      = paste0(substr(mm_yy, 4, 8), "-", substr(mm_yy, 1, 2)), 
+                date       = as.Date(paste0(mm_yy, "-01")),
+                timestamp  = as.POSIXct(paste(date, "00:00:00"), tz = "UTC")) %>%
+  dplyr::arrange(bin, mm_yy)
+# Update bin labels to use the midpoint of each bin
+node_ts$bin <- paste(zoo::rollmean(breaks, 2)[node_ts$bin], "m")
+node_ts$bin <- factor(node_ts$bin, levels = unique(node_ts$bin))
+
+#### Define graphical parameters for plot 
+zlim <- c(min(node_ts$n_node), max(node_ts$n_node) + 1)
+col_param     <- 
+  pretty_cols_brewer(zlim = zlim,
+                     n_breaks = zlim[2],
+                     pal = function(...) viridis::viridis(..., direction = -1))
+node_ts$col     <- col_param$col[findInterval(node_ts$n_node, col_param$breaks)]
+
+#### Define plot of number of observations through time for each depth bin
+## Set up plot to save 
+save <- TRUE
+if(save) png("./fig/val_temp_bottom_effort_depth_ts.png",
+             height = 6, width = 6, units = "in",  res = 600)
+pp <- par(mfrow = par_mf(length(unique(node_ts$bin))), 
+          oma = c(4, 4, 2, 2), 
+          mar = c(2, 2, 2, 2))
+## Make a plot for each depth bin 
+lapply(1:nrow(node_ts), function(i){
+  # Isolate data
+  d <- split(node_ts, node_ts$bin)[[i]]
+  # Define blank plot 
+  pretty_plot(d$timestamp, d$n, 
+              pretty_axis_args = list(
+                x = list( x = range(node_ts$timestamp), 
+                          y = range(d$n)),
+                axis = list(list(format = "%b-%y"), list())),
+              xlab = "", ylab = "",
+              type = "n")
+  # Add time series, coloured by the number of nodes with observations in each month
+  nrw <- nrow(d)
+  l0 <- 1:(nrw-1)
+  l1 <- 2:nrw
+  arrows(x0 = d$timestamp[l0], 
+         y0 = d$n[l0], 
+         x1 = d$timestamp[l1], 
+         y1 = d$n[l1], 
+         col = d$col[l0], 
+         lwd = 1.5,
+         length = 0)
+  points(d$timestamp, d$n, 
+         pch = 21, bg = d$col, col = d$col)
+  # Add title defining the panel label, depth bin and number of nodes 
+  nn_1 <- min(d$n_node)
+  nn_2 <- max(d$n_node)
+  if(nn_1 == nn_2) nn <- nn_1 else nn <- paste0(nn_1, "–", nn_2)
+  nn <- paste0("[", nn, " nodes]")
+  mtext(side = 3, 
+        bquote(bold(.(letters[i])) ~ "(" * .(as.character(d$bin[1])) ~ .(nn) * ")"
+        ), 
+        adj = 0.7, 
+        line = 0.3)
+})
+mtext(side = 1, "Time (months)", line = 3)
+mtext(side = 2, "Number of observations", outer = TRUE, line = 2)
+par(pp)
+## Add colour bar
+col_param_paa <- pretty_axis(side = 4,
+                             lim = list(x = col_param$zlim),
+                             axis = list(at = zoo::rollmean(col_param$breaks, 2), 
+                                         labels = floor(zoo::rollmean(col_param$breaks, 2))),
+                             control_axis = list(las = TRUE, cex.axis = 0.75),
+                             add = FALSE)
+TeachingDemos::subplot(
+  add_colour_bar(data.frame(x = col_param$breaks,
+                            col = c(col_param$col, NA)),
+                 pretty_axis_args = col_param_paa,
+                 mtext_args = list(side = 4, 
+                                   "Number of nodes", 
+                                   las = TRUE,
+                                   line = 2)
+  ), 
+  x = c(quantile(node_ts$timestamp, 0.21), quantile(node_ts$timestamp, 0.21) + 6*24*60*60), 
+  y = c(-10, 100),
+)
+## Save
 if(save) dev.off()
 
 

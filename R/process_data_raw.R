@@ -40,7 +40,8 @@ trinodes <- read.csv("./data-raw/spatial/mesh/mesh_trinodes.csv")
 str(trinodes)
 
 #### Define global parameters
-wgs84 <- sp::CRS(as.character("+init=epsg:4326"))
+wgs84  <- sp::CRS(SRS_string = "EPSG:4326")
+bng    <- sp::CRS(SRS_string = "EPSG:27700") 
 
 
 ################################
@@ -49,12 +50,16 @@ wgs84 <- sp::CRS(as.character("+init=epsg:4326"))
 
 #### Define bathymetry
 raster::writeRaster(bathy, "./data/spatial/bathy/bathy.tif")
+bathy_bng <- raster::projectRaster(bathy, crs = bng)
+raster::writeRaster(bathy_bng, "./data/spatial/bathy/bathy_bng.tif")
 
 #### Define MPA boundaries
 mpa <- sp::spTransform(mpa, wgs84)
 raster::crs(mpa)
 raster::plot(mpa)
 saveRDS(mpa, "./data/spatial/mpa/mpa.rds")
+mpa_bng <- sp::spTransform(mpa, bng)
+saveRDS(mpa_bng, "./data/spatial/mpa/mpa_bng.rds")
 
 #### Define coastline
 # Download a SpatialPolygonsDataFrame defining the administrative areas of the UK:
@@ -68,6 +73,8 @@ coast <- sp::spTransform(coast, wgs84)
 ire   <- readRDS("./data-raw/spatial/coast/gadm36_IRL_0_sp.rds")
 coast <- raster::bind(coast, ire)
 saveRDS(coast, "./data/spatial/coast/coast.rds")
+coast_bng <- sp::spTransform(coast, bng)
+saveRDS(coast_bng, "./data/spatial/coast/coast_bng.rds")
 
 
 ################################
@@ -101,6 +108,9 @@ if(run){
   ## Save mesh
   saveRDS(mesh_around_nodes, 
           "./data/spatial/mesh/mesh_around_nodes.rds")
+  mesh_around_nodes_bng  <- sp::spTransform(mesh_around_nodes, bng)
+  saveRDS(mesh_around_nodes_bng, 
+          "./data/spatial/mesh/mesh_around_nodes_bng.rds")
   
 } else {
   mesh_around_nodes <- 
