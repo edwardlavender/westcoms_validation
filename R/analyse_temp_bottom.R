@@ -37,7 +37,7 @@ cex.label <- 1.7
 cex       <- 1.5
 cex.axis  <- 1.7
 cex.pch   <- 0.2
-line.ylab <- 3
+line.ylab <- 2.9
 line.xlab <- 3
 line.main <- 0.5
 adj.label <- 0
@@ -56,7 +56,7 @@ pp <- par(oma = c(2.5, 2.5, 1, 1),
           mar = c(3, 3, 3, 3))
 
 #### Histogram of differences
-pscale <- 1e4
+mx <- 1500
 pretty_hist(validation$diff,
             xn = 3,
             xlab = "",
@@ -64,8 +64,7 @@ pretty_hist(validation$diff,
             xlim = c(-1, 2),
             cex.lab = cex,
             xaxis = list(at = seq(-1, 2, by = 0.5), cex.axis = cex.axis),
-            yaxis = list(at = seq(0, 35000, by = 5000), 
-                         labels = add_lagging_point_zero(seq(0, 35000, by = 5000)/pscale, 1),
+            yaxis = list(at = seq(0, mx, by = 300),
                          cex.axis = cex.axis, las = TRUE),
             col = scales::alpha("grey", 0.5)
 )
@@ -75,12 +74,12 @@ mtext_args <-
             cex = cex, 
             line = line.xlab),
        list(side = 2, 
-            text = expression(paste("Frequency (x", 10^4, ")")), 
+            text = "Frequency", 
             cex = cex, 
-            line = line.ylab)
+            line = line.ylab + 1)
   )
 lapply(mtext_args, function(elm) do.call(mtext, elm))
-lines(x = c(0, 0), y = c(0, 3.5 * pscale), lty = 3, lwd = 2)
+lines(x = c(0, 0), y = c(0, mx), lty = 3, lwd = 2)
 # lines(rep(mean(validation$diff), 2), c(0, 3.5 * pscale), lty = 2)
 add_label("a")
 
@@ -277,10 +276,20 @@ tidy_write(skill, file = "./fig/val_temp_bottom_results_metrics_overall.txt")
 #### Simulation parameters 
 
 #### Define simulation parameters
+## Set seed
 set.seed(1)
-n_min    <- 100   # minimum n. of observations required to include a node/month combination in the analysis 
+## Check number of observations available per month 
+n_chk <- 
+  validation %>%
+  dplyr::group_by(mesh_ID, mm_yy) %>%
+  dplyr::summarise(n = dplyr::n())
+pretty_hist(n_chk$n)
+quantile(n_chk$n, seq(0, 1, by = 0.05))
+utils.add::basic_stats(n_chk$n)
+## Define sample sizes
+n_min    <- 5   # minimum n. of observations required to include a node/month combination in the analysis 
 n_sim    <- 1000  # n. of iterations 
-n_sample <- 100   # n. of samples drawn on each iteration 
+n_sample <- 5   # n. of samples drawn on each iteration 
 
 #### Define focal node/month combinations for the analysis
 pretty_plot(node_IDs$ID, node_IDs$depth)
@@ -303,7 +312,7 @@ if(run){
   ## For each node, for each month, for each simulation, we generate
   # ... calculate model skill metrics.
   sim_scores <- 
-    pbapply::pblapply(split(focals, 1:nrow(focals)), cl = 8L, function(focal){
+    pbapply::pblapply(split(focals, 1:nrow(focals)), cl = 11L, function(focal){
       # focal <- focals[1, , drop = FALSE]
       node  <- focal$mesh_ID
       month <- focal$mm_yy
@@ -362,7 +371,7 @@ sim_stats <-
 sim_stats_avg <- 
   sim_stats %>% 
   dplyr::group_by(mm_yy) %>%
-  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean), 
+  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean, na.rm = TRUE), 
                 n_node = length(unique(node))) %>%
   dplyr::select(-node) %>%
   dplyr::slice(1L)
@@ -372,7 +381,8 @@ skill_tidy <-
   dplyr::select(`Time (months)` = mm_yy, 
                 n_node          = n_node, 
                 cols$raw[cols$raw %in% colnames(sim_stats_avg)])
-colnames(skill_tidy) <- c("Time (months)", "n_node", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
+colnames(skill_tidy) <- 
+  c("Time (months)", "n_node", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
 for(i in 3:ncol(skill_tidy)) 
   skill_tidy[, i] <- tidy_numbers(skill_tidy[, i], digits = 2, ignore = FALSE) 
 tidy_write(skill_tidy, 
@@ -380,7 +390,9 @@ tidy_write(skill_tidy,
 
 ##### Define depth threshold (optional)
 # If defined, update figure names below. 
-# sim_stats <- sim_stats[sim_stats$depth  >= 100, ]
+# shallow < 50; deep >= 50 m
+# sim_stats <- sim_stats[sim_stats$depth < 50, ]
+# sim_stats <- sim_stats[sim_stats$depth >= 50, ]
 
 #### Visualise simulated scores through time 
 
@@ -453,7 +465,7 @@ lapply(1:length(metrics), function(i){
   sim_stats_avg <- 
     sim_stats %>% 
     dplyr::group_by(mm_yy) %>%
-    dplyr::mutate(mean = mean(.data[[col]]), na.rm = TRUE, 
+    dplyr::mutate(mean = mean(.data[[col]], na.rm = TRUE), 
                   lower = quantile(.data[[col]], 0.25, na.rm = TRUE), 
                   upper = quantile(.data[[col]], 0.75, na.rm = TRUE)) %>%
     dplyr::slice(1L)
@@ -495,11 +507,11 @@ TeachingDemos::subplot(
                             col = c(col_param$col, NA)),
                  pretty_axis_args = col_param_paa,
                  mtext_args = list(side = 4, 
-                                   expression("Number of nodes (" * italic(n) * ")"), 
-                                   line = 2.5)
+                                   text = "Number of nodes", 
+                                   line = 2) # 2 for shallow
   ), 
-  x = c(max(sim_stats$timestamp) + 35*24*60*60, 
-        max(sim_stats$timestamp)+ 40*24*60*60), 
+  x = c(max(sim_stats$timestamp) + 35*24*60*60, # 70*24*60*60 for shallow
+        max(sim_stats$timestamp)+ 40*24*60*60), # 75*24*60*60 for shallow
   y = c(0, 1))
 
 if(save) dev.off()
@@ -528,8 +540,8 @@ skill_wo_shallow <-
   dplyr::select(-node) %>%
   dplyr::slice(1L) %>%
   dplyr::select(mm_yy, me)
+(skill_wi_shallow$me - skill_wo_shallow$me) %>% sort()
 
-range(skill_wi_shallow$me - skill_wo_shallow$me) %>% sort()
 
 ################################
 ################################
@@ -541,7 +553,7 @@ skill_change <-
   sim_stats_avg %>%
   dplyr::filter(mm_yy %in% c("2016-03", "2016-04", "2016-05", 
                              "2017-03", "2017-04", "2017-05")) %>%
-  dplyr::select(mm_yy, mb, me, rmse, r, d) %>%
+  dplyr::select(mm_yy,n_node, mb, me, rmse, r, d) %>%
   dplyr::arrange(mm_yy) %>%
   data.frame()
 # Define a function to calculate improvement 
@@ -554,10 +566,21 @@ calc_improvement <-
     scores <- 
       dplyr::tibble(Metric = c(toupper(x), NA, NA),
                     Period = c("March", "April", "May"), 
-                    change = metric[p16] - metric[p17],
+                    x_2016 = metric[p16], 
+                    x_2017 = metric[p17],
+                    s_2016 = metric_s[p16], 
+                    s_2017 = metric_s[p17],
+                    change = metric[p17] - metric[p16],
                     change_pc = (change/metric[p16]) * 100,
-                    change_s = metric_s[p16] - metric_s[p17],
-                    change_s_pc = (change_s/metric_s[p16]) * 100)
+                    change_s = (metric_s[p17] - metric_s[p16]),
+                    change_s_pc = (change_s/abs(metric_s[p16])) * 100
+                    )
+    if(x %in% c("mb", "me", "rmse")){
+      scores$change      <-  (metric[p17] - metric[p16]) * -1
+      scores$change_pc   <- (scores$change/metric[p16]) * 100
+      scores$change_s    <- scores$change_s * -1 
+      scores$change_s_pc <- (scores$change_s/metric_s[p16]) * 100
+    }
     scores <- rbind(scores, 
                     c(NA_integer_, NA_integer_, 
                       apply(scores[3:ncol(scores)], 2, mean)))
@@ -569,18 +592,33 @@ metrics_for_improve <- c("mb", "me", "rmse", "r", "d")
 improvement <- 
   lapply(metrics_for_improve, function(metric) calc_improvement(metric)) %>%
   dplyr::bind_rows() 
+improvement
 # Check the average (standardised) improvement across all scores
 improvement %>%
   dplyr::filter(!(Period %in% "Average")) %>%
   dplyr::summarise(mean(change_s), mean(change_s_pc)) %>%
   as.numeric()
+improvement %>%
+  dplyr::slice(1:12) %>%
+  dplyr::filter(!(Period %in% "Average")) %>%
+  dplyr::summarise(mean(change_s), mean(change_s_pc)) %>%
+  as.numeric()
+improvement %>%
+  dplyr::slice(13:20) %>%
+  dplyr::filter(!(Period %in% "Average")) %>%
+  dplyr::summarise(mean(change_s), mean(change_s_pc)) %>%
+  as.numeric()
 # Save tidy file 
-for(i in c("change", "change_pc", "change_s", "change_s_pc")){
+for(i in c('x_2016', "x_2017", 
+           "s_2016", "s_2017",
+           "change", "change_pc", 
+           "change_s", "change_s_pc")){
   improvement[, i] <- tidy_numbers(improvement[, i], 2)
 }
 tidy_write(improvement, 
            "./fig/val_temp_bottom_results_metrics_improvement.txt", 
            na = "")
+
 
 ################################
 ################################
@@ -590,12 +628,20 @@ tidy_write(improvement,
 sim_stats_avg <- 
   sim_stats %>% 
   dplyr::group_by(node) %>%
-  dplyr::mutate(dplyr::across(c(dplyr::everything(), -mm_yy), mean)) %>%
-  dplyr::select(-mm_yy) %>%
-  dplyr::slice(1L)
+  dplyr::mutate(dplyr::across(c(dplyr::everything(), -mm_yy), mean, na.rm = TRUE), 
+                n_mm_yy = length(unique(mm_yy))) %>%
+  dplyr::select(-mm_yy, -n) %>%
+  dplyr::slice(1L) %>%
+  dplyr::ungroup()
 # Save tidy dataframe 
-skill_tidy           <- sim_stats_avg[, colnames(sim_stats_avg) %in% c("node", cols$raw)]
-colnames(skill_tidy) <- c("Node", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
+skill_tidy <- 
+  sim_stats_avg %>%
+  dplyr::select(`Node ID` = ID, 
+                n_mm_yy          = n_mm_yy, 
+                cols$raw[cols$raw %in% colnames(sim_stats_avg)]) %>%
+  dplyr::arrange(`Node ID`)
+colnames(skill_tidy) <- 
+  c("Node ID", "n_time", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
 for(i in 3:ncol(skill_tidy)) 
   skill_tidy[, i] <- tidy_numbers(skill_tidy[, i], digits = 2, ignore = FALSE) 
 tidy_write(skill_tidy, 
@@ -697,7 +743,7 @@ TeachingDemos::subplot(
                             col = c(col_param$col, NA)),
                  pretty_axis_args = col_param_paa,
                  mtext_args = list(side = 4, 
-                                   expression("Number of observations (" * italic(n) * ")"), 
+                                   "Number of months", 
                                    line = 2.5)
   ), 
   x = c(max(sim_stats$ID)+0.5, max(sim_stats$ID) + 0.75), y = c(0, 1))
@@ -792,7 +838,7 @@ if(save) dev.off()
 #### Examine ensemble-average skill metrics in relation to depth 
 mod <- lm(mb ~ depth, data = sim_stats_avg)
 summary(mod)
-png("./fig/val_temp_bottom_metrics_by_node.png", 
+png("./fig/val_temp_bottom_metrics_by_node_with_depth.png", 
     height = 5, width = 5, units = "in", res = 600)
 sim_stats_avg$col     <- col_param$col[findInterval(sim_stats_avg$mb, col_param$breaks)]
 pretty_predictions_1d(mod, 

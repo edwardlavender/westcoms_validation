@@ -79,10 +79,24 @@ if(implement_validate){
   # Define month/year categories 
   validation$mm_yy <- Tools4ETS::mmyy(validation$date)
   ## Save dataframe 
-  saveRDS(validation, "./data/wc/val_temp_bottom.rds")
+  saveRDS(validation, "./data/wc/val_temp_bottom_raw.rds")
 } else{
-  validation <- readRDS("./data/wc/val_temp_bottom.rds")
+  validation <- readRDS("./data/wc/val_temp_bottom_raw.rds")
 }
+
+#### Process validation 
+validation <- 
+  validation %>% 
+  dplyr::mutate(timestamp = lubridate::round_date(timestamp, "hours")) %>%
+  dplyr::group_by(timestamp, mesh_ID) %>%
+  dplyr::mutate(obs = mean(obs), 
+                wc = mean(wc), 
+                diff = wc - obs) %>%
+  dplyr::select(timestamp, mm_yy, date, date_name, hour, lat, long, layer,
+                mesh_ID, obs, wc, diff) %>%
+  dplyr::slice(1L) %>%
+  dplyr::ungroup()
+saveRDS(validation, "./data/wc/val_temp_bottom.rds")
 
 #### Standard checks 
 check <- FALSE

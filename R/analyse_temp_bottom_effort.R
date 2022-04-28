@@ -39,15 +39,15 @@ cex.pch  <- 0.2
 #### Number of observations
 nrow(validation)
 
-#### Number of individuals contributing data (14): 
-length(unique(validation$key))
+#### Number of individuals contributing data (in the raw data) (14): 
+# length(unique(validation$key))
 
 #### Total time window
 # 15th March 2016 to 1st June 2017:
 range(validation$timestamp) 
 # 443 days:
 difftime(max(validation$timestamp), min(validation$timestamp), units = "days") 
-# 72 days without detections during this time window:
+# 74 days without detections during this time window:
 which(!(
   seq(as.Date(min(validation$timestamp)), 
       as.Date(max(validation$timestamp)), 
@@ -60,18 +60,18 @@ which(!(
 length(unique(validation$mesh_ID)) 
 sort(table(validation$mesh_ID)/nrow(validation)*100)
 # Depths
-utils.add::basic_stats(node_IDs$depth)
-utils.add::basic_stats(node_IDs$depth[4:nrow(node_IDs)])
+# utils.add::basic_stats(node_IDs$depth)
+# utils.add::basic_stats(node_IDs$depth[4:nrow(node_IDs)])
 
 #### Total number of hours
 # All hours of the day:
-length(unique(validation$index_hour))
+length(unique(validation$hour))
 
 #### Total number of validation observations
 # >100,000 validation observations (102,630):
 nrow(validation)
-# Proportion of observations contributed by each individual:
-sort(table(validation$key)/nrow(validation) * 100 %>% round(digits = 1)) 
+# Proportion of observations contributed by each individual (in raw data):
+# sort(table(validation$key)/nrow(validation) * 100 %>% round(digits = 1)) 
 # 14 individuals contribute to validation, 
 # ... but 5 individuals account for most validation (10-20 % each)
 
@@ -163,7 +163,7 @@ pretty_axis(axis_ls = axis_ls, add = TRUE)
 mtext(side = 1, "Easting", cex = cex, line = 2)
 mtext(side = 2, "Northing", cex = cex, line = 4)
 # Add spatial effort 
-adj <- 1.25e3
+adj <- 75
 points(spatial_effort_sp,
        cex = spatial_effort$nobs/adj,
        pch = 21,
@@ -171,7 +171,7 @@ points(spatial_effort_sp,
        bg = scales::alpha("grey", 0.5))
 # check range nobs to inform legend
 range(spatial_effort$nobs)
-leg <- c(500, 1000, 5000, 10000, 20000)
+leg <- c(10, 50, 100, 500, 1000)
 # Add legend
 par(xpd = NA)
 legend(215000, 780000,
@@ -255,12 +255,15 @@ node_IDs <-
   dplyr::mutate(ID = (1:dplyr::n()) - 1, 
                 depth = h$h[match(mesh_ID, h$ID)]) %>%
   dplyr::select(ID, mesh_ID, n, depth)
+n_sum <- sum(node_IDs$n)
+node_IDs$pc <- (node_IDs$n/n_sum) * 100
 # Define tidy table
 node_IDs %>%
   tidy_numbers(digits = 2) %>%
   dplyr::select(`Node ID` = ID, 
                 Node = mesh_ID,
                 n = n, 
+                percent = pc,
                 `Depth (m)` = depth
                 ) %>%
   tidy_write("./fig/val_temp_bottom_effort_node_ids.txt")
@@ -414,7 +417,7 @@ lapply(1:nrow(node_ts), function(i){
         adj = 0.7, 
         line = 0.3)
 })
-mtext(side = 1, "Time (months)", line = 3)
+mtext(side = 1, "Time (months)", outer = TRUE, line = 1)
 mtext(side = 2, "Number of observations", outer = TRUE, line = 2)
 par(pp)
 ## Add colour bar
@@ -434,7 +437,7 @@ TeachingDemos::subplot(
   ), 
   x = c(quantile(node_ts$timestamp, 1) + 70*24*60*60, 
         quantile(node_ts$timestamp, 1) + 75*24*60*60), 
-  y = c(45, 215),
+  y = c(5, 15),
 )
 ## Save
 if(save) dev.off()
