@@ -274,31 +274,7 @@ tidy_write(skill, file = "./fig/val_temp_bottom_results_metrics_overall.txt")
 #### Model skill metrics (by month)
 
 ################################
-#### Method 
-
-# Examination of the raw differences between modelled temperatures
-# ... and observations suggests that seasonality in model skill
-# ... in 2016 and improved model skill in 2017. However, these trends 
-# ... are associated with trends in the number of observations (and 
-# ... the average temperature). To account for trends in the number 
-# ... of observations, here, I use a stratified random sampling process 
-# ... to re-sample observations/predictions and generate 'standardised'
-# ... samples from which model skill metrics can be calculated. The approach 
-# ... processes as follows: 
-# ... 1) Node selection. This analysis focused on the nodes recorded 
-# ... ... > min_n observations in one or more months,
-# ... 2) Sampling. For each node, n_sim observation/prediction pairs were
-# ... ... sampled from each month of the time series and used to calculate 
-# ... ... model skill metrics in that month. This sampling process ensured
-# ... ... that model skill metrics were calculated from the same number
-# ... ... of observations each month. 
-# ... 3) Iteration. This process was repeated n_sim times to generate
-# ... ... a set of metric scores for each node/month. 
-# ... 4) Averaging within nodes. For each node/month, for each metric, the median was taken 
-# ... ... as a measure of average model skill for that node at that time. 
-# ... 5) Averaging across nodes. For each month, the mean of the median metric score
-# ... ... at each node was taken as an average measure of model skill across all nodes
-# ... ... at that time. 
+#### Simulation parameters 
 
 #### Define simulation parameters
 set.seed(1)
@@ -386,12 +362,17 @@ sim_stats <-
 sim_stats_avg <- 
   sim_stats %>% 
   dplyr::group_by(mm_yy) %>%
-  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean)) %>%
+  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean), 
+                n_node = length(unique(node))) %>%
   dplyr::select(-node) %>%
   dplyr::slice(1L)
 # Save tidy dataframe 
-skill_tidy           <- sim_stats_avg[, colnames(sim_stats_avg) %in% c("mm_yy", cols$raw)]
-colnames(skill_tidy) <- c("Time (months)", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
+skill_tidy <- 
+  sim_stats_avg %>%
+  dplyr::select(`Time (months)` = mm_yy, 
+                n_node          = n_node, 
+                cols$raw[cols$raw %in% colnames(sim_stats_avg)])
+colnames(skill_tidy) <- c("Time (months)", "n_node", cols$pro[cols$raw %in% colnames(sim_stats_avg)])
 for(i in 3:ncol(skill_tidy)) 
   skill_tidy[, i] <- tidy_numbers(skill_tidy[, i], digits = 2, ignore = FALSE) 
 tidy_write(skill_tidy, 
@@ -526,14 +507,22 @@ if(save) dev.off()
 #### Examine the influence of shallow-water nodes on the seasonal pattern 
 # ... by comparing ME estimates for the whole dataset versus a subsetted dataset
 # ... without shallow-water receivers
+# Number of shallow-water nodes over period of interes
+sim_stats %>% 
+  dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>%
+  dplyr::filter(node %in% node_IDs$mesh_ID[node_IDs$depth < 50]) %>%
+  dplyr::group_by(mm_yy) %>%
+  dplyr::summarise(unique(node))
+# Summary statistics for period of interest across all nodes 
 skill_wi_shallow <- 
   sim_stats_avg %>% 
   dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>%
   dplyr::select(mm_yy, me)
+# Summary statistics for period of interest excluding shallow nodes 
 skill_wo_shallow <- 
   sim_stats %>% 
-  dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>%
-  dplyr::filter(!(node %in% node_IDs$mesh_ID[node_IDs$depth < 25])) %>%
+  dplyr::filter(mm_yy %in% c("2016-03", "2016-04","2016-05", "2016-06")) %>% 
+  dplyr::filter(!(node %in% node_IDs$mesh_ID[node_IDs$depth < 50])) %>%
   dplyr::group_by(mm_yy) %>%
   dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean)) %>%
   dplyr::select(-node) %>%
