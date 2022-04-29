@@ -169,6 +169,9 @@ if(save) dev.off()
 ################################
 #### Temperature variation across the MPA 
 
+################################
+#### Extract temperatures 
+
 #### Define data for extraction 
 dates       <- utils.add::seq_range(range(val_tb$date), "days")
 date_names  <- date_name(dates)
@@ -208,6 +211,10 @@ if(run){
   wc <- readRDS("./data/wc/ss_temp_bottom.rds")
 }
 
+
+################################
+#### Spatial variation 
+
 #### Generate summary statistics (~10 s)
 run <- FALSE
 if(run){
@@ -243,6 +250,76 @@ pretty_plot(wc_stats$timestamp, wc_stats$iqr,
 mtext(side = 1, "Time (months)", line = 2.4)
 mtext(side = 2, expression("IQR (" * degree * "C)"), line = 2)
 dev.off()
+
+
+################################
+#### Temporal variation (daily ranges)
+
+#### Calculate daily ranges through time (~10 s)
+t1 <- Sys.time()
+wc_stats <- 
+  wc %>%
+  dplyr::group_by(date, mesh_ID) %>%
+  dplyr::summarise(rng = max(wc) - min(wc))
+t2 <- Sys.time()
+difftime(t2, t1)
+
+#### Summarise daily ranges at each node across nodes 
+wc_stats_avg <- 
+  wc_stats %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(min    = min(rng), 
+                   q25    = quantile(rng, 0.25),
+                   median = median(rng),
+                   q75    = quantile(rng, 0.75),
+                   max    = max(rng)) %>%
+  dplyr::mutate(date = as.Date(date))
+
+#### Visualise daily ranges through time 
+## Set up plot
+save <- TRUE
+if(save) png("./fig/ss_temp_bottom_daily_ranges.png", 
+             height = 4, width = 6, units = "in", res = 600)
+## Define blank plot 
+pretty_plot(wc_stats_avg$date, wc_stats_avg$median, 
+            pretty_axis_args = list(
+              x = list(x = range(wc_stats_avg$date), 
+                       y = range(c(wc_stats_avg$min, wc_stats_avg$max))), 
+              axis = list(list(format = "%b-%y"), 
+                          list())
+            ),
+            xlab = "", ylab = "",
+            type = "n")
+## Add summary statistics 
+# Add range 
+polygon(x = c(wc_stats_avg$date, rev(wc_stats_avg$date)), 
+        y = c(wc_stats_avg$min, rev(wc_stats_avg$max)), 
+        col = scales::alpha("grey", 0.5), border = FALSE)
+# Add IQR
+polygon(x = c(wc_stats_avg$date, rev(wc_stats_avg$date)), 
+        y = c(wc_stats_avg$q25, rev(wc_stats_avg$q75)), 
+        col = scales::alpha("dimgrey", 0.5), border = FALSE)
+lines(wc_stats_avg$date, wc_stats_avg$median, lwd = 2)
+## Add monthly ME score for comparison 
+skill <- readRDS("./data/wc/val_temp_bottom_sim_scores_by_month_summary.rds")
+skill$date <- as.Date(skill$date)
+lines(zoo::rollmean(skill$date, 2), skill$me[1:(nrow(skill)-1)], 
+      type = "b",
+      pch = 21, col = "red4", bg = "red4", cex = 0.5,
+      lwd = 2, lty = 3)
+## Add legend
+legend(as.Date("2016-01-20"), 6, 
+       pch = c(22, 22, NA, 21), 
+       col = c(NA, NA, "black", "red4"), 
+       pt.bg = c(scales::alpha("grey", 0.5), scales::alpha("dimgrey", 0.5), NA, "red4"),
+       lty = c(0, 0, 1, 3), 
+       lwd = c(1, 1, 2, 2),
+       legend = c("R", "IQR", "Median", "ME"), 
+       bty = "n")
+## Add axis titles 
+mtext(side = 1, "Time (months)", line = 2)
+mtext(side = 2, expression(Delta * T ~ "(" * degree * "C)"), line = 1.5)
+if(save) dev.off()
 
 
 #### End of code. 
