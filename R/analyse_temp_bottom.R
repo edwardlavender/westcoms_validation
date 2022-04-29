@@ -235,6 +235,44 @@ validation %>%
   tidy_numbers(digits = 2) %>%
   tidy_write(file = "./fig/val_temp_bottom_results_summary.txt")
 
+#### Examine correlations between monthly variables (e.g., mean and variance)
+monthly_variation <- 
+  validation %>%
+  dplyr::group_by(mm_yy) %>%
+  dplyr::summarise(mu_m = mean(wc), 
+                   mu_o = mean(obs),
+                   mu_diff = mean(diff),
+                   sd_m = sd(wc),
+                   sd_o = sd(obs), 
+                   n = dplyr::n()
+                   )
+cor(monthly_variation$sd_o, monthly_variation$n)
+cor(monthly_variation$sd_m, monthly_variation$n)
+cor(monthly_variation$sd_o, monthly_variation$mu_o)
+cor(monthly_variation$sd_m, monthly_variation$mu_m)
+cor(monthly_variation$mu_diff, monthly_variation$n)
+cor(monthly_variation$mu_diff, monthly_variation$mu_o)
+cor(monthly_variation$mu_diff, monthly_variation$mu_m)
+
+#### Examine correlations between nodes 
+nodely_variation <- 
+  validation %>%
+  dplyr::group_by(mesh_ID) %>%
+  dplyr::summarise(mu_m = mean(wc), 
+                   mu_o = mean(obs),
+                   mu_diff = mean(diff),
+                   sd_m = sd(wc),
+                   sd_o = sd(obs), 
+                   n = dplyr::n()
+  )
+cor(nodely_variation$sd_o, nodely_variation$n, use = "pairwise.complete.obs")
+cor(nodely_variation$sd_m, nodely_variation$n, use = "pairwise.complete.obs")
+cor(nodely_variation$sd_o, nodely_variation$mu_o, use = "pairwise.complete.obs")
+cor(nodely_variation$sd_m, nodely_variation$mu_m, use = "pairwise.complete.obs")
+cor(nodely_variation$mu_diff, nodely_variation$n, use = "pairwise.complete.obs")
+cor(nodely_variation$mu_diff, nodely_variation$mu_o, use = "pairwise.complete.obs")
+cor(nodely_variation$mu_diff, nodely_variation$mu_m, use = "pairwise.complete.obs")
+
 
 ################################
 ################################
@@ -375,6 +413,7 @@ sim_stats_avg <-
                 n_node = length(unique(node))) %>%
   dplyr::select(-node) %>%
   dplyr::slice(1L)
+saveRDS(sim_stats_avg, "./data/wc/val_temp_bottom_sim_scores_by_month_summary.rds")
 # Save tidy dataframe 
 skill_tidy <- 
   sim_stats_avg %>%
