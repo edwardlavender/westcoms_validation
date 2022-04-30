@@ -174,7 +174,7 @@ plot(abs(validation$node_depth_mean), validation$diff,
 lines(xlim, c(0, 0), lwd = 2, lty = 3, col = "black")
 axis(side = 1, xat, xlabels, cex.axis = cex.axis, pos = ylim[1])
 axis(side = 2, yat, cex.axis = cex.axis, pos = xlim[1], las = TRUE)
-mtext(side = 1, "Mean depth (m)", cex = cex, line = line.xlab)
+mtext(side = 1, "Depth (m)", cex = cex, line = line.xlab)
 mtext(side = 2, 
       expression(paste(T[M] - T[O], " (", degree, "C)")), 
       cex = cex, line = line.ylab - 0.5)
@@ -263,7 +263,8 @@ nodely_variation <-
                    mu_diff = mean(diff),
                    sd_m = sd(wc),
                    sd_o = sd(obs), 
-                   n = dplyr::n()
+                   n = dplyr::n(),
+                   depth = node_depth_mean[1]
   )
 cor(nodely_variation$sd_o, nodely_variation$n, use = "pairwise.complete.obs")
 cor(nodely_variation$sd_m, nodely_variation$n, use = "pairwise.complete.obs")
@@ -272,6 +273,7 @@ cor(nodely_variation$sd_m, nodely_variation$mu_m, use = "pairwise.complete.obs")
 cor(nodely_variation$mu_diff, nodely_variation$n, use = "pairwise.complete.obs")
 cor(nodely_variation$mu_diff, nodely_variation$mu_o, use = "pairwise.complete.obs")
 cor(nodely_variation$mu_diff, nodely_variation$mu_m, use = "pairwise.complete.obs")
+cor(nodely_variation$mu_diff, nodely_variation$depth, use = "pairwise.complete.obs")
 
 
 ################################
@@ -409,7 +411,10 @@ sim_stats <-
 sim_stats_avg <- 
   sim_stats %>% 
   dplyr::group_by(mm_yy) %>%
-  dplyr::mutate(dplyr::across(all_of(tolower(metrics)), mean, na.rm = TRUE), 
+  dplyr::mutate(
+    o_hat = mean(o_hat), m_hat = mean(m_hat), 
+    sigma_o = mean(sigma_o), sigma_m = mean(sigma_m),
+    dplyr::across(all_of(tolower(metrics)), mean, na.rm = TRUE), 
                 n_node = length(unique(node))) %>%
   dplyr::select(-node) %>%
   dplyr::slice(1L)
@@ -667,8 +672,10 @@ tidy_write(improvement,
 sim_stats_avg <- 
   sim_stats %>% 
   dplyr::group_by(node) %>%
-  dplyr::mutate(dplyr::across(c(dplyr::everything(), -mm_yy), mean, na.rm = TRUE), 
-                n_mm_yy = length(unique(mm_yy))) %>%
+  dplyr::mutate(    o_hat = mean(o_hat), m_hat = mean(m_hat), 
+                    sigma_o = mean(sigma_o), sigma_m = mean(sigma_m),
+                    dplyr::across(c(dplyr::everything(), -mm_yy), mean, na.rm = TRUE), 
+                    n_mm_yy = length(unique(mm_yy))) %>%
   dplyr::select(-mm_yy, -n) %>%
   dplyr::slice(1L) %>%
   dplyr::ungroup()
