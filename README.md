@@ -82,7 +82,14 @@ skill resulting from model updates.
             individuals’ time at liberty;  
           - `recaptures_processed.rds` contains recapture locations;
       - `wc/` contains results, from `analyse_*` `R` scripts (see
-        below); <br/><br/>
+        below);
+      - `validation/` contains processed validation datasets (copied
+        from `wc/` for publication in this repository), including:
+          - `val_temp_bottom.rds` is the bottom-temperature validation
+            dataset;
+          - `val_temp_profile_obs.rds` and `val_temp_profile_pred.rds`
+            are the temperature-depth profile validation datasets,
+            including observations and predictions; <br/><br/>
 3.  **`R/`** contains scripts for data processing and analysis:
       - `define_global_param.R` defines global parameters;
       - `define_helpers.R` defines helper functions;
@@ -102,20 +109,24 @@ skill resulting from model updates.
         temperature-depth profiles; <br/><br/>
 4.  **`fig/`** contains figures.
 
-Note that the `data-raw`, `data` and `fig` directories are not provided
-in the online version of this repository.
+Note that the `data-raw`, `data/*` (except `data/valiation/`) and `fig`
+directories are not provided in the online version of this repository.
 
 ## Workflow
 
-1.  **Define global parameters** via `define_global_param.R` and
+1.  **Setup project** by creating the directory system defined above.
+
+2.  **Source (raw) data** via the links provided.
+
+3.  **Define global parameters** via `define_global_param.R` and
     `define_helpers.R`.
 
-2.  **Process raw data** via `process_data_raw.R`.
+4.  **Process raw data** via `process_data_raw.R`.
 
-3.  **Assemble validation datasets** via `assemble_temp_bottom.R` and
+5.  **Assemble validation datasets** via `assemble_temp_bottom.R` and
     `assemble_temp_profile.R`.
 
-4.  **Implement analysis** via `analyse_study_site.R`,
+6.  **Implement analysis** via `analyse_study_site.R`,
     `analyse_interpolation.R`, `analyse_temp_bottom_effort.R`,
     `analyse_temp_bottom.R` and `analyse_temp_profile.R`.
 
