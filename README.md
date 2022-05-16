@@ -1,5 +1,5 @@
 Benthic animal-borne sensors and citizen science combine to validate
-hydrodynamic modelling
+ocean modelling
 ================
 Edward Lavender<sup>1,2\*</sup>
 
@@ -22,7 +22,7 @@ Scotland
 
 This repository contains methods, written in `R` and organised as an `R
 Project`, for Lavender et al. (in prep). Benthic animal-borne sensors
-and citizen science combine to validate hydrodynamic modelling.
+and citizen science combine to validate ocean modelling.
 
 In this paper, we used electronic tagging and tracking data from flapper
 skate (*Dipturus intermedius*) to validate temperature predictions from
@@ -31,21 +31,23 @@ System (WeStCOMS) (Aleynik et al., 2016). This modelling system resolves
 hourly hydrodynamic conditions across an unstructured, triangular mesh
 that is organised into 11 vertically spaced, terrain-following Sigma
 layers (the 1st layer lies at the surface, the 10th layer lies at the
-seabed and 11th layer lies below the seabed). Scalar variables, such as
-temperature, are resolved at mesh nodes.
+seabed and the 11th layer lies below the seabed). Scalar variables, such
+as temperature, are resolved at mesh nodes.
 
-As part of previous research on flapper skate movement, flapper skate
-off the west coast of Scotland were tagged with acoustic tags and
-archival tags (programmed to record depth and temperature). Using the
-locational information provided by acoustic detections at receivers and
-the temperature data from archival tags, we assembled a validation
-dataset for bottom temperature predictions for the study site that could
-be compared to predictions from WeStCOMS. Using temperature-depth
-profiles resulting from recreational catch-and-release angling, we also
-validated temperature-depth profiles from WeStCOMS. Both validation
-datasets spanned a period of time when the model forcings in WeStCOMS
-were updated, allowing us to quantify empirically the improvement in
-model skill resulting from model updates.
+As part of previous research on flapper skate movement off the west
+coast of Scotland, forty individuals were tagged with acoustic tags
+(programmed to release individual-specific acoustic transmissions that
+could be detected by a static array of receivers) and archival tags
+(programmed to record depth and temperature). Using the locational
+information provided by acoustic detections at receivers and the
+temperature data from archival tags, we assembled a validation dataset
+for bottom temperature predictions for the study site that could be
+compared to predictions from WeStCOMS. Using temperature-depth profiles
+resulting from recreational catch-and-release angling, we also validated
+temperature-depth profiles from WeStCOMS. Both validation datasets
+spanned a period of time when the model forcings in WeStCOMS were
+updated, allowing us to quantify empirically the improvement in model
+skill resulting from model updates.
 
 ## Structure
 
@@ -85,13 +87,19 @@ model skill resulting from model updates.
       - `define_global_param.R` defines global parameters;
       - `define_helpers.R` defines helper functions;
       - `process_data_raw.R` processes raw data;
+      - `assemble_temp_bottom.R` assembles the bottom-temperature
+        validation dataset;
+      - `assemble_temp_profile.R` assembles the temperature-depth
+        profile validation dataset;
       - `analyse_study_site.R` visualises the study site;
+      - `analyse_interpolation.R` evaluates the validity of the
+        interpolation method used for data assembly;
+      - `analyse_temp_bottom_effort.R` analyses ‘effort’ for the
+        bottom-temperature validation dataset;
       - `analyse_temp_bottom.R` implements the validation analysis for
         bottom temperatures;
       - `analyse_temp_profile.R` implements the validation analysis for
-        temperature-depth profiles;
-      - `analyse_interpolation.R` evaluates the validity of the
-        interpolation method used in the validation analyses;<br/><br/>
+        temperature-depth profiles; <br/><br/>
 4.  **`fig/`** contains figures.
 
 Note that the `data-raw`, `data` and `fig` directories are not provided
@@ -104,9 +112,12 @@ in the online version of this repository.
 
 2.  **Process raw data** via `process_data_raw.R`.
 
-3.  **Implement data analysis** via `analyse_study_site.R`,
-    `analyse_temp_bottom.R`, `analyse_temp_profile.R` and
-    `analyse_interpolation.R`.
+3.  **Assemble validation datasets** via `assemble_temp_bottom.R` and
+    `assemble_temp_profile.R`.
+
+4.  **Implement analysis** via `analyse_study_site.R`,
+    `analyse_interpolation.R`, `analyse_temp_bottom_effort.R`,
+    `analyse_temp_bottom.R` and `analyse_temp_profile.R`.
 
 # GitHub packages
 
@@ -140,4 +151,4 @@ elasmobranch to catch-and-release angling.
 <https://doi.org/10.3389/fmars.2022.864344>
 
 Lavender, E. et al. (in prep). Benthic animal-borne sensors and citizen
-science combine to validate hydrodynamic modelling.
+science combine to validate ocean modelling.
