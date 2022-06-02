@@ -302,13 +302,13 @@ axis_ls <-
               control_axis = list(las = TRUE, cex.axis = cex.axis), 
               control_sci_notation = list(magnitude = 16L, digits = 0))
 # Plot and add pretty axes
-
 raster::plot(coast_focal, 
              xlim = xlim, ylim = ylim,
              col = col_land, 
              border = col_border, 
              lwd = 0.25)
 # Add spatial fields 
+raster::cellStats(bathy_focal, range) # -209.654099    4.114351
 raster::plot(bathy_focal, 
              col = scales::alpha(viridis::viridis(100), 0.75), 
              add = TRUE)
