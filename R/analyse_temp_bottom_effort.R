@@ -280,6 +280,7 @@ mesh_focal_xy$ID <- node_IDs$ID[match(mesh_focal_xy$mesh_ID, node_IDs$mesh_ID)]
 mesh_focal  <- raster::crop(mesh, ext)
 bathy_focal <- raster::crop(bathy, ext)
 bathy_focal <- raster::mask(bathy_focal, mesh_focal)
+bathy_focal[bathy_focal > 0] <- NA
 coast_focal <- raster::crop(coast, ext)
 
 #### Define figure
@@ -308,10 +309,14 @@ raster::plot(coast_focal,
              border = col_border, 
              lwd = 0.25)
 # Add spatial fields 
-raster::cellStats(bathy_focal, range) # -209.654099    4.114351
-raster::plot(bathy_focal, 
-             col = scales::alpha(viridis::viridis(100), 0.75), 
-             add = TRUE)
+raster::cellStats(bathy_focal, range) # -209.654099    0
+at <- seq(-200, 0, by = 50)
+fields::image.plot(bathy_focal, 
+                   zlim = raster::cellStats(bathy_focal, range),
+                   col = scales::alpha(viridis::viridis(100), 0.75), 
+                   axis.args = list(at = at, labels = abs(at)),
+                   smallplot = c(0.87, 0.885, 0.3, 0.7),
+                   add = TRUE)
 raster::plot(coast_focal, 
              col = col_land, 
              border = col_border, 
