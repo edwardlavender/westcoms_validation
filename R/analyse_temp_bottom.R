@@ -30,6 +30,49 @@ validation <- readRDS("./data/wc/val_temp_bottom.rds")
 
 ################################
 ################################
+#### Data processing
+
+#### Define depth 
+
+## Define dataframe that relates differences to depth 
+# Identify the subset of nodes at which there were detections:
+nodes_with_detections <- unique(validation$mesh_ID)
+# Determine the depth of each node below sea level 
+node_depth_mean      <- data.frame(node = nodes_with_detections)
+node_depth_mean$mean <- h$h[match(node_depth_mean$node, h$ID)]
+node_depth_mean$mean <- abs(node_depth_mean$mean) *-1
+table(is.na(node_depth_mean$mean)) 
+
+## Add depths to dataframe
+sort(unique(node_depth_mean$node))
+sort(unique(validation$mesh_ID))
+validation$node_depth_mean <- 
+  node_depth_mean$mean[match(validation$mesh_ID, node_depth_mean$node)]
+
+## Define colour scheme for node depth
+# ... Either use split colour scheme or 
+# ... follow the scheme in 'val_temp_bottom_effort_depth_map'
+use_scheme_split <- FALSE
+if(use_scheme_split){
+  zlim <- utils.add::round_range(range(abs(validation$node_depth_mean)), digits = 1)
+  col_param <- 
+    pretty_cols_split_heat(zlim = zlim,
+                           scheme_cold = "Reds",
+                           scheme_hot = "Blues",
+                           select_cold = 2:8,
+                           select_hot = 3:8,
+                           split = 50)
+} else {
+  col_param <- 
+    pretty_cols_brewer(zlim = c(4.114351, 209.654099),
+                       pal = function(x,...) scales::alpha(rev(viridis::viridis(x,...)), 0.75))
+}
+validation$col_by_depth <- 
+  col_param$col[findInterval(abs(validation$node_depth_mean), col_param$breaks)]
+
+
+################################
+################################
 #### Visualisation 
 
 #### Local parameters
@@ -136,31 +179,16 @@ axis_ls <-
               pretty_axis_args = paa,
               xlab = "", ylab = "",
               mtext_args = mta, 
-              type = "p", pch = 21,  col = "black", bg = "black", cex = cex.pch,
-  )
+              type = "p", pch = 21,  
+              col = validation$col_by_depth, bg = validation$col_by_depth,
+              # col = "black", bg = "black", 
+              cex = cex.pch)
 lines(axis_ls[[1]]$lim, c(0, 0), lwd = 2, lty = 3, col = "black")
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], ticksize = 0.02, lwd = 0.1)
 add_label("c")
 
 
 #### Relationship with depth 
-
-## Define dataframe that relates differences to depth 
-# Identify the subset of nodes at which there were detections:
-nodes_with_detections <- unique(validation$mesh_ID)
-# Determine the depth of each node below sea level 
-node_depth_mean      <- data.frame(node = nodes_with_detections)
-node_depth_mean$mean <- h$h[match(node_depth_mean$node, h$ID)]
-node_depth_mean$mean <- abs(node_depth_mean$mean) *-1
-table(is.na(node_depth_mean$mean)) 
-
-## Add depths to dataframe
-sort(unique(node_depth_mean$node))
-sort(unique(validation$mesh_ID))
-validation$node_depth_mean <- 
-  node_depth_mean$mean[match(validation$mesh_ID, node_depth_mean$node)]
-
-## Plot figure 
 yat <- seq(-1, 2, by = 0.5)
 ylim <- range(yat)
 xat <- seq(0, 150, by = 30)
@@ -170,7 +198,10 @@ plot(abs(validation$node_depth_mean), validation$diff,
      axes = FALSE, xlab = "", ylab = "",
      xlim = xlim,
      ylim = ylim,
-     type = "p", pch = 21,  col = "black", bg = "black", cex = cex.pch)
+     type = "p", pch = 21,  
+     col = validation$col_by_depth, bg = validation$col_by_depth,
+     # col = "black", bg = "black", 
+     cex = cex.pch)
 lines(xlim, c(0, 0), lwd = 2, lty = 3, col = "black")
 axis(side = 1, xat, xlabels, cex.axis = cex.axis, pos = ylim[1])
 axis(side = 2, yat, cex.axis = cex.axis, pos = xlim[1], las = TRUE)
@@ -194,10 +225,16 @@ node_IDs <-
 validation$ID <- node_IDs$ID[match(validation$mesh_ID, node_IDs$mesh_ID)]
 validation$ID <- factor(validation$ID, levels = node_IDs$ID)
 validation    <- validation %>% dplyr::arrange(ID)
+# pretty_plot(validation$ID, validation$node_depth_mean, col = validation$col_by_depth)
+node_IDs$col_by_depth <- 
+  col_param$col[findInterval(abs(node_IDs$depth), col_param$breaks)]
+
+# Make plot 
 paa <- list(pretty = list(list(n = 20), list(n = 4)), 
             control_axis = list(las = TRUE, cex.axis = cex.axis))
 pretty_boxplot(validation$ID, validation$diff, 
                pretty_axis_args = paa,
+               col = node_IDs$col_by_depth,
                xlab = "", ylab = "",
                pch = ".", varwidth = TRUE)
 mtext(side = 1, "Node ID", cex = cex, line = line.xlab)
@@ -206,6 +243,17 @@ mtext(side = 2,
       cex = cex, line = line.ylab - 1)
 add_label("e")
 
+
+#### Add (depth) legend
+fields::image.plot(zlim = col_param$zlim, 
+                   breaks = col_param$breaks,
+                   col = col_param$col,
+                   smallplot = c(0.92, 0.93, 0.2, 0.78),
+                   axis.args = list(cex.axis = 2),
+                   legend.only = TRUE)
+px <- par(xpd = NA)
+text(81, 2, "Depth (m)", cex = 2)
+par(px)
 
 #### Save figures 
 par(pp)
