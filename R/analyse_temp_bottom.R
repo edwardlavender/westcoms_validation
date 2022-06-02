@@ -245,11 +245,13 @@ add_label("e")
 
 
 #### Add (depth) legend
-fields::image.plot(zlim = col_param$zlim, 
-                   breaks = col_param$breaks,
-                   col = col_param$col,
-                   smallplot = c(0.92, 0.93, 0.2, 0.78),
-                   axis.args = list(cex.axis = 2),
+fields::image.plot(zlim = sort(col_param$zlim * -1), 
+                   breaks = sort(col_param$breaks * -1),
+                   col = rev(col_param$col),
+                   smallplot = c(0.92, 0.93, 0.2, 0.79),
+                   axis.args = list(at = c(-50, -100, -150, -200), 
+                                    labels = c(50, 100, 150, 200),
+                                    cex.axis = 2),
                    legend.only = TRUE)
 px <- par(xpd = NA)
 text(81, 2, "Depth (m)", cex = 2)
