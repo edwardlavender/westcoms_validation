@@ -64,7 +64,7 @@ if(use_scheme_split){
                            split = 50)
 } else {
   col_param <- 
-    pretty_cols_brewer(zlim = c(4.114351, 209.654099),
+    pretty_cols_brewer(zlim = c(0, 209.654099),
                        pal = function(x,...) scales::alpha(rev(viridis::viridis(x,...)), 0.75))
 }
 validation$col_by_depth <- 
@@ -248,9 +248,9 @@ add_label("e")
 fields::image.plot(zlim = sort(col_param$zlim * -1), 
                    breaks = sort(col_param$breaks * -1),
                    col = rev(col_param$col),
-                   smallplot = c(0.92, 0.93, 0.2, 0.79),
-                   axis.args = list(at = c(-50, -100, -150, -200), 
-                                    labels = c(50, 100, 150, 200),
+                   smallplot = c(0.92, 0.93, 0.2, 0.78),
+                   axis.args = list(at = c(0, -50, -100, -150, -200), 
+                                    labels = c(0, 50, 100, 150, 200),
                                     cex.axis = 2),
                    legend.only = TRUE)
 px <- par(xpd = NA)
