@@ -191,7 +191,7 @@ add_label("c")
 #### Relationship with depth 
 yat <- seq(-1, 2, by = 0.5)
 ylim <- range(yat)
-xat <- seq(0, 150, by = 30)
+xat <- seq(0, 150, by = 50)
 xlabels <- xat
 xlim <- range(xat)
 plot(abs(validation$node_depth_mean), validation$diff, 
@@ -245,12 +245,13 @@ add_label("e")
 
 
 #### Add (depth) legend
-fields::image.plot(zlim = sort(col_param$zlim * -1), 
-                   breaks = sort(col_param$breaks * -1),
-                   col = rev(col_param$col),
+pos <- col_param$breaks <= col_param$breaks[which.min(abs(150 - col_param$breaks))]
+fields::image.plot(zlim = c(-150, 0), 
+                   breaks = sort(col_param$breaks[pos] * -1),
+                   col = rev(col_param$col[pos])[-length(which(pos))],
                    smallplot = c(0.92, 0.93, 0.2, 0.78),
-                   axis.args = list(at = c(0, -50, -100, -150, -200), 
-                                    labels = c(0, 50, 100, 150, 200),
+                   axis.args = list(at = c(0, -50, -100, -150), 
+                                    labels = c(0, 50, 100, 150),
                                     cex.axis = 2),
                    legend.only = TRUE)
 px <- par(xpd = NA)
