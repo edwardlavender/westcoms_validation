@@ -92,7 +92,8 @@ length(unique(paste0(val_tb$long, "-", val_tb$lat)))
 val_tb_sp <- sp::SpatialPoints(val_tb[, c("long", "lat")], wgs84)
 val_tb_sp <- sp::spTransform(val_tb_sp, bng)
 points(val_tb_sp, pch = 4, cex = 0.75)
-# Temperature-depth profile validation 
+# Temperature-depth profile validation
+length(unique(val_tp$event_id))
 val_tp_sp <- 
   val_tp %>% 
   dplyr::group_by(event_id) %>% 
