@@ -88,6 +88,7 @@ raster::lines(mpa, lwd = 1.75)
 
 #### Add validation locations
 # Bottom temperature validation
+length(unique(paste0(val_tb$long, "-", val_tb$lat)))
 val_tb_sp <- sp::SpatialPoints(val_tb[, c("long", "lat")], wgs84)
 val_tb_sp <- sp::spTransform(val_tb_sp, bng)
 points(val_tb_sp, pch = 4, cex = 0.75)
