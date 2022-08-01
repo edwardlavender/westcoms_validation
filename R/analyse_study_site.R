@@ -58,7 +58,7 @@ quick    <- FALSE
 save <- TRUE
 if(save) png("./fig/study_site.png",
              height = 8, width = 8, units = "in",  res = 600)
-pp <- par(oma = c(1, 1, 1, 1))
+pp <- par(oma = c(1, 1, 1, 1), mgp = c(3, 0.5, 0.5))
 
 #### Define pretty axes 
 xat <- c(xlim[1], 140000, 160000, 180000, 200000)
@@ -68,11 +68,11 @@ ylb <- c("", "700000", "720000", "740000", "760000", "")
 axis_ls <- 
   pretty_axis(side = 1:4,
               x = list(xat, yat),
-              axis = list(list(at = xat, labels = xlb),
-                          list(at = yat, labels = ylb),
-                          list(at = xat, labels = FALSE),
-                          list(at = yat, labels = FALSE)), 
-              control_axis = list(las = TRUE, cex.axis = cex.axis))
+              axis = list(list(at = xat),
+                          list(at = yat),
+                          list(at = xat),
+                          list(at = yat)), 
+              control_axis = list(las = TRUE, cex.axis = cex.axis, lwd.ticks = 0, labels = FALSE))
 
 #### Plot and add pretty axes
 raster::plot(coast_site, 
@@ -85,6 +85,9 @@ raster::plot(coast_site,
 #### Add spatial fields 
 if(!quick) raster::lines(mesh_site, col = "royalblue", lwd = 0.25)
 raster::lines(mpa, lwd = 1.75)
+add_sp_grid_ll(coast_site, 
+               ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim)
+               )
 
 #### Add validation locations
 # Bottom temperature validation
@@ -103,13 +106,13 @@ val_tp_sp <-
   sp::SpatialPoints(proj = wgs84) %>%
   sp::spTransform(CRSobj = bng)
 raster::coordinates(val_tp_sp)
-points(val_tp_sp, pch = 3,  cex = 0.75, lwd = 1.5, col = "grey50")
+points(val_tp_sp, pch = 3,  cex = 0.75, lwd = 1.5, col = "red")
 legend(182000, 775000,
        pch = c(4, 3), 
        pt.cex = c(0.75, 0.75), 
        lwd = c(1, 1.5), 
        lty = c(0, 0),
-       col = c("black", "grey50"), 
+       col = c("black", "red"), 
        legend = c("Bottom", "Profile"),
        x.intersp = 0.1,
        bty = "n"
