@@ -91,8 +91,10 @@ save <- TRUE
 if(save) png("./fig/val_temp_bottom_effort_temporal.png",
              height = 8, width = 8, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 1))
-pretty_plot(temporal_effort$date,
+axis_ls <- 
+  pretty_plot(temporal_effort$date,
             temporal_effort$count,
+            ylim = c(0, 60),
             pretty_axis_args = list(side = 1:2, 
                                     pretty = list(n = 5),
                                     axis = list(list(format = "%b-%y"), list()),
@@ -102,7 +104,9 @@ pretty_plot(temporal_effort$date,
             lwd = 1,
             xlab = "Time (months)",
             ylab = "Daily number of observations",
-            cex.lab = cex)
+            cex.lab = cex
+            )
+add_time_upgrade_marker(axis_ls[[2]]$lim, prop = 0.15)
 par(pp)
 if(save) dev.off()
 
@@ -218,21 +222,23 @@ save <- TRUE
 if(save) png("./fig/val_temp_bottom_effort_spatiotemporal.png",
              height = 8, width = 8, units = "in", res = 600)
 pp <- par(oma = c(1, 1, 1, 1))
-pretty_plot(space_and_time$date,
-            space_and_time$count,
-            pretty_axis_args = list(side = 1:2, 
-                                    pretty = list(n = 5),
-                                    axis = list(list(format = "%b-%y"), list()),
-                                    control_axis = list(las = TRUE, cex.axis = cex.axis)
-            ),
-            type = "p",
-            pch = 21,
-            col = scales::alpha("grey", 0.9),
-            bg = scales::alpha("grey", 0.9),
-            xlab = "Time (months)",
-            ylab = "Daily number of nodes",
-            cex.lab = cex
-)
+axis_ls <- 
+  pretty_plot(space_and_time$date,
+              space_and_time$count,
+              ylim = c(0, 10),
+              pretty_axis_args = list(side = 1:2, 
+                                      pretty = list(n = 5),
+                                      axis = list(list(format = "%b-%y"), list()),
+                                      control_axis = list(las = TRUE, cex.axis = cex.axis)
+              ),
+              type = "p",
+              pch = 21,
+              col = scales::alpha("grey", 0.9),
+              bg = scales::alpha("grey", 0.9),
+              xlab = "Time (months)",
+              ylab = "Daily number of nodes",
+              cex.lab = cex
+  )
 # Add weekly average to elucidate trends
 summary <- 
   summarise_in_bins(space_and_time$date,
@@ -240,6 +246,7 @@ summary <-
                     bin = "weeks",
                     fun = list(mean = mean))
 lines(summary$mean$bin, summary$mean$stat, type = "b")
+add_time_upgrade_marker(axis_ls[[2]]$lim, prop = 0.15)
 if(save) dev.off()
 
 
