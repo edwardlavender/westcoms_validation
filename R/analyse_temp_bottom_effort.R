@@ -288,7 +288,7 @@ coast_focal <- raster::crop(coast, ext)
 save <- TRUE
 if(save) png("./fig/val_temp_bottom_effort_depth_map.png",
              height = 8, width = 6, units = "in",  res = 600)
-pp <- par(oma = c(1, 1, 1, 1))
+pp <- par(oma = c(1, 1, 1, 1), mgp = c(3, 0.5, 0.5))
 # Define pretty axes 
 xlim <- ext[1:2]
 ylim <- ext[3:4]
@@ -296,11 +296,7 @@ axis_ls <-
   pretty_axis(side = 1:4,
               lim = list(xlim, ylim),
               pretty = list(list(n = 3), list(n = 5)),
-              axis = list(list(),
-                          list(),
-                          list(labels = FALSE),
-                          list(labels = FALSE)), 
-              control_axis = list(las = TRUE, cex.axis = cex.axis), 
+              control_axis = list(las = TRUE, labels = FALSE, lwd.ticks = 0), 
               control_sci_notation = list(magnitude = 16L, digits = 0))
 # Plot and add pretty axes
 raster::plot(coast_focal, 
@@ -327,6 +323,9 @@ lapply(split(node_IDs, 1:nrow(node_IDs)), function(d){
   m <- mesh[mesh$ID == d$mesh_ID, ]
   raster::lines(m, col = "royalblue", lwd = 2)
 })
+add_sp_grid_ll(coast_focal, 
+               ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim)
+)
 basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
                             mesh_focal_xy$ID, 
                             col.label = "black", 
@@ -334,8 +333,8 @@ basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y,
 
 # Add axes and labels 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, "Easting", cex = cex, line = 2)
-mtext(side = 2, "Northing", cex = cex, line = 3)
+mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
 mtext(side = 4, "Depth (m)", cex = cex, line = 2)
 # Add north arrow and scale 
 add_north_arrow(170097.7, 741356, 
