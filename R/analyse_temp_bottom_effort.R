@@ -135,20 +135,18 @@ mesh_site  <- raster::crop(mesh, ext)
 save <- TRUE
 if(save) png("./fig/val_temp_bottom_effort_spatial.png",
              height = 8, width = 8, units = "in",  res = 600)
-pp <- par(oma = c(1, 1, 1, 10))
+pp <- par(oma = c(1, 1, 1, 10), mgp = c(3, 0.5, 0.5))
 # Define pretty axes 
-xat <- c(xlim[1], 140000, 160000, 180000, 200000)
-xlb <- c("", "140000", "160000", "180000", "200000")
-yat <- c(ylim[1], 700000, 720000, 740000, 760000, ylim[2])
-ylb <- c("", "700000", "720000", "740000", "760000", "")
+xat <- xlim
+yat <- ylim
 axis_ls <- 
   pretty_axis(side = 1:4,
               x = list(xat, yat),
-              axis = list(list(at = xat, labels = xlb),
-                          list(at = yat, labels = ylb),
-                          list(at = xat, labels = FALSE),
-                          list(at = yat, labels = FALSE)), 
-              control_axis = list(las = TRUE, cex.axis = cex.axis))
+              axis = list(list(at = xat),
+                          list(at = yat),
+                          list(at = xat),
+                          list(at = yat)),
+              control_axis = list(las = TRUE, labels = FALSE, lwd.ticks = 0))
 # Plot and add pretty axes
 raster::plot(coast_site, 
              col = col_land, 
@@ -159,16 +157,19 @@ raster::plot(coast_site,
 # Add spatial fields 
 raster::lines(mesh_site, col = "royalblue", lwd = 0.25)
 raster::lines(mpa, lwd = 1.75)
+add_sp_grid_ll(coast_site, 
+               ext = raster::extent(c(axis_ls[[1]]$lim, axis_ls[[2]]$lim)))
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, "Easting", cex = cex, line = 2)
-mtext(side = 2, "Northing", cex = cex, line = 4)
+mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 3.5)
 # Add spatial effort 
-adj <- 75
+adj <- 70
 points(spatial_effort_sp,
        cex = spatial_effort$nobs/adj,
        pch = 21,
-       col = scales::alpha("grey40", 0.95),
-       bg = scales::alpha("grey", 0.5))
+       col = scales::alpha("red", 0.95),
+       bg = scales::alpha("red", 0.4), 
+       lwd = 1.5)
 # check range nobs to inform legend
 range(spatial_effort$nobs)
 leg <- c(10, 50, 100, 500, 1000)
@@ -179,8 +180,9 @@ legend(215000, 780000,
        cex = cex.axis,
        pch = rep(21, 5),
        pt.cex = leg/adj,
-       col = scales::alpha("grey40", 0.95),
-       pt.bg = scales::alpha("grey", 0.5),
+       col = scales::alpha("red", 0.95),
+       pt.bg = scales::alpha("red", 0.25),
+       pt.lwd = 1.5,
        bty = "n",
        y.intersp = 3.75,
        x.intersp = 4)
@@ -324,8 +326,9 @@ lapply(split(node_IDs, 1:nrow(node_IDs)), function(d){
   raster::lines(m, col = "royalblue", lwd = 2)
 })
 add_sp_grid_ll(coast_focal, 
-               ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim)
-)
+               ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim), 
+               add_labels = list(cex.axis = cex.axis)
+               )
 basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
                             mesh_focal_xy$ID, 
                             col.label = "black", 
