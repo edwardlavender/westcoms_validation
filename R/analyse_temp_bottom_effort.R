@@ -327,7 +327,8 @@ lapply(split(node_IDs, 1:nrow(node_IDs)), function(d){
 })
 add_sp_grid_ll(coast_focal, 
                ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim), 
-               add_labels = list(cex.axis = cex.axis)
+               add_labels = list(cex.axis = cex.axis),
+               add_labels_unit_x = 2L
                )
 basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
                             mesh_focal_xy$ID, 
@@ -337,7 +338,7 @@ basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y,
 # Add axes and labels 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
 mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
-mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 3)
 mtext(side = 4, "Depth (m)", cex = cex, line = 2)
 # Add north arrow and scale 
 add_north_arrow(170097.7, 741356, 
