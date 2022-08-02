@@ -53,18 +53,35 @@ mesh_site  <- raster::crop(mesh, ext)
 cex      <- 1.5
 cex.axis <- cex - 0.2
 quick    <- FALSE
+zoom     <- FALSE
 
 #### Set up figure 
 save <- TRUE
-if(save) png("./fig/study_site.png",
-             height = 8, width = 8, units = "in",  res = 600)
+if(save) {
+  if(!zoom){
+    png("./fig/study_site.png",
+        height = 8, width = 8, units = "in",  res = 600)
+  } else {
+    png("./fig/study_site_zoom.png",
+        height = 8, width = 6, units = "in",  res = 600)
+  }
+}
 pp <- par(oma = c(1, 1, 1, 1), mgp = c(3, 0.5, 0.5))
 
 #### Define pretty axes 
-xat <- c(xlim[1], 140000, 160000, 180000, 200000)
-xlb <- c("", "140000", "160000", "180000", "200000")
-yat <- c(ylim[1], 700000, 720000, 740000, 760000, ylim[2])
-ylb <- c("", "700000", "720000", "740000", "760000", "")
+if(!zoom){
+  # Define axis tick mark positions 
+  # ... Only extreme positions are defined
+  # ... Because labels are now suppressed and implemented automatically
+  # ... ... via add_sp_grid_ll()
+  xat <- xlim
+  yat <- ylim
+} else{
+  # Define zoomed-in limited to match 'val_temp_bottom_effort_depth_map.png'
+  # ... (in analyse_temp_bottom_effort.R)
+  xat <- c(167905.5, 180766.3)
+  yat <- c(722828.2, 743429.7)
+}
 axis_ls <- 
   pretty_axis(side = 1:4,
               x = list(xat, yat),
@@ -72,7 +89,14 @@ axis_ls <-
                           list(at = yat),
                           list(at = xat),
                           list(at = yat)), 
-              control_axis = list(las = TRUE, cex.axis = cex.axis, lwd.ticks = 0, labels = FALSE))
+              control_axis = list(las = TRUE, lwd.ticks = 0, labels = FALSE))
+
+#### Define spatial layers
+if(zoom){
+  ext <- raster::extent(c(axis_ls[[1]]$lim, axis_ls[[2]]$lim))
+  coast_site <- raster::crop(coast_site, ext)
+  mesh_site  <- raster::crop(mesh_site, ext)
+}
 
 #### Plot and add pretty axes
 raster::plot(coast_site, 
@@ -84,7 +108,7 @@ raster::plot(coast_site,
 
 #### Add spatial fields 
 if(!quick) raster::lines(mesh_site, col = "royalblue", lwd = 0.25)
-raster::lines(mpa, lwd = 1.75)
+if(!zoom) raster::lines(mpa, lwd = 1.75)
 add_sp_grid_ll(coast_site, 
                ext = raster::extent(axis_ls[[1]]$lim, axis_ls[[2]]$lim)
                )
@@ -107,7 +131,14 @@ val_tp_sp <-
   sp::spTransform(CRSobj = bng)
 raster::coordinates(val_tp_sp)
 points(val_tp_sp, pch = 3,  cex = 0.75, lwd = 1.5, col = "red")
-legend(182000, 775000,
+if(!zoom){
+  leg_x <- 182000
+  leg_y <- 775000
+} else {
+  leg_x <- 172050
+  leg_y <- 743800
+}
+legend(leg_x, leg_y,
        pch = c(4, 3), 
        pt.cex = c(0.75, 0.75), 
        lwd = c(1, 1.5), 
@@ -132,20 +163,36 @@ if(add_tagging_sites){
 }
 
 #### Add north arrow and scale 
-add_north_arrow(135000, 772000, 
-                width = 5000, 
-                height = 8000)
-raster::scalebar(10000, xy = c(180000, 681000), 
-                 type = "line", 
-                 label = c("10 km"))
+if(!zoom){
+  add_north_arrow(135000, 772000, 
+                  width = 5000, 
+                  height = 8000)
+  raster::scalebar(10000, xy = c(180000, 681000), 
+                   type = "line", 
+                   label = c("10 km"))
+} else {
+  # Details copied to match val_temp_bottom_effort_depth_map.png
+  add_north_arrow(170097.7, 741356, 
+                  width = 5000/5, 
+                  height = 8000/5)
+  raster::scalebar(5000, xy = c(175000, 723000), 
+                   type = "line", 
+                   label = c("5 km"))
+}
 
 #### Add axes titles 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, "Easting", cex = cex, line = 2)
-mtext(side = 2, "Northing", cex = cex, line = 0)
+if(!zoom){
+  mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 1.5)
+  mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = -2)
+} else {
+  mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+  mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
+}
+
 
 #### Add map of the UK
-if(!quick){
+if(!quick && !zoom){
   TeachingDemos::subplot(
     { 
       raster::plot(coast_uk, 
