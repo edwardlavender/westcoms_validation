@@ -154,6 +154,7 @@ points(validation$timestamp, validation$wc,
        pch = 21, col = "black", bg = "black", cex = 0.1)
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], 
     ticksize = 0.02, lwd = 0.1)
+add_time_upgrade_marker(axis_ls[[2]]$lim)
 
 ## Add legend
 px <- par(xpd = NA)
@@ -184,6 +185,7 @@ axis_ls <-
               # col = "black", bg = "black", 
               cex = cex.pch)
 lines(axis_ls[[1]]$lim, c(0, 0), lwd = 2, lty = 3, col = "black")
+add_time_upgrade_marker(axis_ls[[2]]$lim)
 rug(validation$timestamp, pos = axis_ls[[2]]$lim[1], ticksize = 0.02, lwd = 0.1)
 add_label("c")
 

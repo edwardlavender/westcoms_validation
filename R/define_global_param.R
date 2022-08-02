@@ -33,6 +33,18 @@ library(fvcom.tbx)
 ################################
 #### Define global parameters 
 
+#### Define the time of the model upgrade
+# (To highlight on relevant figures)
+time_upgrade <- as.POSIXct("2017-01-01 00:00:00", tz = "UTC")
+add_time_upgrade_marker <- function(ylim, length = 0.1, lwd = 2,...){
+  # lines(rep(time_upgrade, 2), ylim, 
+  #       lwd = 1.5, lty = 6, col = "royalblue")
+  arrows(x0 = time_upgrade, 
+         x1 = time_upgrade,
+         y0 = ylim,
+         y1 = ylim - 0.25 * abs(diff(ylim)), 
+         length = length, lwd = lwd,...)
+}
 #### Define the root directory containing FVCOM predictions
 # These have been processed in line with fvcom.tbx requirements. 
 wc_con <- "/Volumes/Lacie_Share/Dima/FVCOM_variable_outputs/temp/"
