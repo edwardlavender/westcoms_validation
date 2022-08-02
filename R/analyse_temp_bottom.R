@@ -866,7 +866,7 @@ coast_focal <- raster::crop(coast, ext)
 save <- TRUE
 if(save) png("./fig/val_temp_bottom_metrics_by_node_map.png",
              height = 8, width = 6.5, units = "in",  res = 600)
-pp <- par(oma = c(1, 1, 1, 2))
+pp <- par(oma = c(1, 1, 1, 2), mgp = c(3, 0.5, 0.5))
 # Define colour bar 
 mesh_focal$mb <- sim_stats_avg$mb[match(mesh_focal$ID, as.character(sim_stats_avg$node))]
 zlim <- c(-0.5, 1.5) # range(mesh_focal$mb, na.rm = TRUE)
@@ -883,11 +883,7 @@ axis_ls <-
   pretty_axis(side = 1:4,
               lim = list(xlim, ylim),
               pretty = list(list(n = 3), list(n = 5)),
-              axis = list(list(),
-                          list(),
-                          list(labels = FALSE),
-                          list(labels = FALSE)), 
-              control_axis = list(las = TRUE, cex.axis = cex.axis - 0.5), 
+              control_axis = list(las = TRUE, labels = FALSE, lwd.ticks = 0), 
               control_sci_notation = list(magnitude = 16L, digits = 0))
 # Plot and add pretty axes
 raster::plot(coast_focal, 
@@ -899,6 +895,10 @@ raster::plot(coast_focal,
 raster::plot(mesh_focal, col = mesh_focal$col, 
              border = "royalblue", lwd = 0.5,
              add = TRUE)
+add_sp_grid_ll(coast_focal, 
+               ext = raster::extent(c(axis_ls[[1]]$lim, axis_ls[[2]]$lim)), 
+               add_labels = list(cex.axis = cex.axis - 0.5), 
+               add_labels_unit_x = 2L)
 basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y, 
                             mesh_focal_xy$ID, 
                             col.label = "black", 
@@ -906,8 +906,8 @@ basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y,
 
 # Add axes and labels 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, "Easting", cex = cex, line = 2)
-mtext(side = 2, "Northing", cex = cex, line = 2)
+mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
 # Add north arrow and scale 
 add_north_arrow(170097.7, 741356, 
                 width = 5000/5, 
@@ -920,14 +920,17 @@ col_param_paa <- pretty_axis(side = 4,
                              lim = list(x = col_param$zlim),
                              control_axis = list(las = TRUE, cex.axis = cex.axis - 0.5),
                              add = FALSE)
-TeachingDemos::subplot(
+TeachingDemos::subplot({
+  px <- par(mgp = c(3, 1, 0))
   add_colour_bar(data.frame(x = col_param$breaks,
                             col = c(col_param$col, NA)),
                  pretty_axis_args = col_param_paa,
                  mtext_args = list(side = 4, 
                                    expression("MB (" * degree * "C)"), 
                                    line = 3.75, cex = cex)
-  ), 
+  )
+  par(px)
+  }, 
   x = c(181500, 182000), y = c(725000, 740000))
 
 if(save) dev.off()
