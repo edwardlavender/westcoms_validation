@@ -21,15 +21,25 @@
 source("./R/define_global_param.R")
 
 #### Load data 
-# Spatial fields 
+## Spatial fields 
 mesh      <- readRDS("./data/spatial/mesh/mesh_around_nodes.rds")
 h         <- readRDS("./data/spatial/mesh/mesh_h.rds")
 coast     <- readRDS("./data/spatial/coast/coast.rds")
 bathy     <- raster::raster("./data/spatial/bathy/bathy.tif")
-# Movement time series 
-archival_in_final_recap  <- readRDS("./data/skate/archival_during_final_recap.rds")
-archival_in_middle_recap <- readRDS("./data/skate/archival_in_middle_recap.rds")
-recaptures               <- readRDS("./data/skate/recaptures_processed.rds")
+## Movement time series 
+# archival raw contains raw time series
+# archival_following_tag_dep contains time series following tag deployment 
+# archival_in_middle_recap contains time series preceding capture during individuals' time at liberty
+# ... and we need to extract corresponding descending profiles using the times of events
+# ... recorded in 'recapture_events'
+# archival_in_final_recap contains time series preceding tag retrieval 
+archival_raw                <- readRDS("./data/skate/archival_raw.rds")
+archival_following_tag_dep  <- readRDS("./data/skate/archival_following_tag_dep.rds")
+archival_in_middle_recap    <- readRDS("./data/skate/archival_in_middle_recap.rds")
+archival_in_final_recap     <- readRDS("./data/skate/archival_during_final_recap.rds")
+recaptures                  <- readRDS("./data/skate/recaptures_processed.rds")
+recapture_events            <- readRDS("./data/skate/recapture_events.rds")
+skateids                    <- readRDS("./data/skate/skateids.rds")
 
 
 ################################
@@ -39,27 +49,102 @@ recaptures               <- readRDS("./data/skate/recaptures_processed.rds")
 run <- FALSE
 if(run){
   
-  #### Define a single dataframe with depth/temperature observations during capture
-  # Define event IDs in archival_in_final_recap 
-  # ... by continuing archival_in_middle_recap
+  #### Define archival time series following recapture events that occurred during time at liberty 
+  archival_following_middle_recap <- 
+    lapply(split(archival_in_middle_recap, archival_in_middle_recap$event_id), function(obs){
+      # obs <- split(archival_in_middle_recap, archival_in_middle_recap$event_id)[[2]]
+      time <- 
+        recapture_events %>% 
+        dplyr::filter(dst_id == obs$dst_id[1] & date_recap %in% as.Date(obs$date_time)) %>%
+        dplyr::filter(recap_event == "end_recap") %>%
+        dplyr::mutate(timestamp = timestamp + 60*2) %>%
+        dplyr::pull(timestamp)
+      out <- 
+        archival_raw %>% 
+        dplyr::filter(dst_id == obs$dst_id[1]) %>%
+        dplyr::filter(date_time %in% seq(time, time + 9 * 2*60, by = 2*60)) %>%
+        dplyr::select(individual, dst_id, date_time, temp, depth)
+      out$category <- obs$event_id[1]
+      return(out)
+  }) %>% dplyr::bind_rows()
+  length(unique(archival_following_middle_recap$category))
+  
+  #### Visualise the time series for each data source 
+  lapply(
+    list(archival_following_tag_dep, 
+         archival_in_middle_recap,
+         archival_following_middle_recap,
+         archival_in_final_recap), 
+    function(obs){
+      pp <- par(mfrow = c(5, 6), oma = c(2, 2, 2, 2), mar = c(2, 2, 2, 2))
+      lapply(split(obs, f = obs$dst_id), function(d){
+        pretty_plot(d$date_time, d$depth*-1, 
+                    pretty_axis_args = list(side = c(3, 2), lim = list(NULL, c(-200, 0))), 
+                    main = d$dst_id[1], 
+                    type = "b", 
+                    col = "blue")
+      }) %>% invisible()
+      par(pp)
+      # readline("Press [Enter] to continue...")
+    })
+  
+  #### Define a single dataframe with depth/temperature observations during capture/release
+  ## Define event IDs 
+  # archival_in_middle_recap
+  unique(archival_in_middle_recap$event_id)
+  # archival_in_final_recap
   event_ids <- 
     seq(max(archival_in_middle_recap$event_id)+1, 
         length.out = length(unique(archival_in_final_recap$dst_id)))
   archival_in_final_recap$event_id <- 
     event_ids[match(archival_in_final_recap$dst_id, 
                     unique(archival_in_final_recap$dst_id))]
-  # Distinguish sample types 
+  # archival_following_tag_dep
+  event_ids <- 
+    seq(max(archival_in_final_recap$event_id)+1, 
+        length.out = length(unique(archival_following_tag_dep$dst_id)))
+  archival_following_tag_dep$event_id <- 
+    event_ids[match(archival_following_tag_dep$dst_id, 
+                    unique(archival_following_tag_dep$dst_id))]
+  # archival_following_middle_recap 
+  event_ids <- 
+    seq(max(archival_following_tag_dep$event_id)+1, 
+        length.out = length(unique(archival_following_middle_recap$category)))
+  archival_following_middle_recap$event_id <- 
+    event_ids[match(archival_following_middle_recap$category, 
+                    unique(archival_following_middle_recap$category))]
+  
+  ## Distinguish sample types 
+  # capture events
   archival_in_middle_recap$event_type  <- "angling"
   archival_in_middle_recap$sample_type <- "capture"
   archival_in_final_recap$event_type   <- "tagging"
   archival_in_final_recap$sample_type  <- "capture"
+  # release events
+  archival_following_tag_dep$event_type       <- "tagging"
+  archival_following_tag_dep$sample_type      <- "release"
+  archival_following_middle_recap$event_type  <- "angling"
+  archival_following_middle_recap$sample_type <- "release"
+  
   # Define columns to retain in each dataframe 
   cols <- c("event_id", "individual", "dst_id", "event_type", 
             "sample_type", "date_time", "depth", "temp")
-  archival_in_middle_recap <- archival_in_middle_recap[, cols]
-  archival_in_final_recap <- archival_in_final_recap[, cols]
+  archival_in_middle_recap        <- archival_in_middle_recap[, cols]
+  archival_in_final_recap         <- archival_in_final_recap[, cols]
+  archival_following_tag_dep      <- archival_following_tag_dep[, cols]
+  archival_following_middle_recap <- archival_following_middle_recap[, cols]
+  
   # Define validation dataset
-  obs <- rbind(archival_in_middle_recap, archival_in_final_recap)
+  obs <- rbind(archival_in_middle_recap, archival_in_final_recap, 
+               archival_following_tag_dep, archival_following_middle_recap)
+  # Show that 'release' events all comprise 10 observations
+  obs %>% 
+    dplyr::filter(sample_type == "release") %>% 
+    dplyr::group_by(event_id) %>% 
+    dplyr::summarise(n = dplyr::n()) %>%
+    dplyr::pull(n) %>%
+    table()
+  
   # Define data name 
   obs$date_name <- date_name(obs$date_time)
   
@@ -68,11 +153,13 @@ if(run){
   head(obs)
   tail(obs)
   ## Number of recapture events
-  # 26 events = 21 captures and 5 recreational events:
+  # 26 capture events = 21 captures and 5 recreational events
+  # 26 release events = 21 captures and 5 recreational events
   length(unique(obs$event_id))
-  table(sapply(split(obs, obs$event_id), function(d) d$sample_type[1]))
-  table(sapply(split(obs, obs$event_id), function(d) d$event_type[1]))
-  ## Visualise capture events
+  obs %>% 
+    dplyr::group_by(sample_type, event_type) %>% 
+    dplyr::summarise(length(unique(event_id)))
+  ## Visualise capture/release events
   pp <- par(mfrow = c(5, 6), oma = c(2, 2, 2, 2), mar = c(2, 2, 2, 2))
   lapply(split(obs, f = obs$event_id), function(d){
     pretty_plot(d$date_time, d$depth*-1, 
@@ -85,16 +172,30 @@ if(run){
   
   #### Implement data processing 
   ## Define locations 
-  # Select relevant recaptures (i.e., those with coordinates)
+  # Add tag deployment locations
+  recaptures_ls <- split(recaptures, recaptures$code == "dep")
+  recaptures_ls$`TRUE`$lat <- 
+    skateids$lat_tag_capture[match(recaptures_ls$`TRUE`$dst_id, skateids$dst_id)]
+  recaptures_ls$`TRUE`$long <- 
+    skateids$long_tag_capture[match(recaptures_ls$`TRUE`$dst_id, skateids$dst_id)]
+  recaptures <- do.call(rbind, recaptures_ls)
   length(which(!is.na(recaptures$lat)))
   obs$match_recaptures <- paste0(as.Date(obs$date_time), "_", obs$dst_id)
+  # Select relevant recaptures (i.e., those with coordinates)
   recaptures <- recaptures[!is.na(recaptures$lat), ]
   # Add locations to dataframe 
   recaptures$match_recaptures <- paste0(recaptures$date, "_", recaptures$dst_id)
   obs$lat <- recaptures$lat[match(obs$match_recaptures, recaptures$match_recaptures)]
   obs$long <- recaptures$long[match(obs$match_recaptures, recaptures$match_recaptures)]
   # Exclude any events for which locations are unavailable:
+  # ... We have locations for:
+  # ... ... 21 tag deployment events 
+  # ... ... 2 angling events that occurred during individuals' time at liberty
+  # ... ... 7 tag retrieval events (though one of these is questionable--see below) 
   obs <- obs[!is.na(obs$lat), ]
+  obs %>% 
+    dplyr::group_by(sample_type, event_type) %>% 
+    dplyr::summarise(length(unique(event_id)))
   ## Validate recorded locations based on bathymetry versus WeStCOMS data
   # Define bathymetric depths
   obs$bathy <- abs(raster::extract(bathy, obs[, c("long", "lat")]))
@@ -103,7 +204,9 @@ if(run){
   # Flag any capture events for which the depth is >= 25 m than the observed depth  
   obs$loc <- paste0(obs$lat, "_", obs$long)
   shift   <- 25
-  obs <- lapply(split(obs, obs$event_id), function(d){
+  obs_ls <- split(obs, obs$sample_type)
+  obs_ls$capture <- 
+    lapply(split(obs_ls$capture, obs_ls$capture$event_id), function(d){
     too_deep <- max(d$depth) > (d$bathy[1] + shift)
     if(too_deep){
       d$max_depth <- max(d$depth)
@@ -114,9 +217,18 @@ if(run){
       return(d)
     }
   })
-  obs <- plyr::compact(obs)
-  obs <- dplyr::bind_rows(obs)
-  ## One event has been excluded (Loch Sween)
+  obs_ls$capture <- plyr::compact(obs_ls$capture)
+  obs_ls$capture <- dplyr::bind_rows(obs_ls$capture)
+  obs            <- dplyr::bind_rows(obs_ls)
+  ## One event has been excluded (Loch Sween) & 
+  # ... we will drop the release ts for this individual as well, 
+  # ... leaving 21 tag deployment events, 
+  # ... 1 angling event that occurred during individuals' time at liberty (up and down profiles)
+  # ... 7 tag capture events 
+  obs <- obs[-which(obs$lat == 56.008 & obs$long == -5.615), ]
+  obs %>% 
+    dplyr::group_by(sample_type, event_type) %>% 
+    dplyr::summarise(length(unique(event_id)))
   
   #### Define westcoms nodes
   obs$mesh_ID <- find_cells(obs$lat, obs$long, 
@@ -131,7 +243,7 @@ if(run){
   # ... (1522 on 2016-08-27 and 1523 on 2016-05-16)
   # Of the tag recovery events, 
   # ... 7 have associated coordinates
-  # So we have a total of nine events with locational information,
+  # So we have a total of nine capture events with locational information,
   # ... of which 8 have valid coordinates. 
   # ... (out of 26 events)
   

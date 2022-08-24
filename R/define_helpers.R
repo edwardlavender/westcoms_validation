@@ -84,6 +84,67 @@ calc_skill_metrics <- function(validation, group = NULL){
 }
 
 
+################################
+################################
+#### get_mvt_rate() and get_depth_limits_for_temp()
+
+#### Define a function to calculate the movement rate
+# This function takes in a start depth and and end depth 
+# ... and calculates the rate of ascent or descent
+# ... in units of 12 s, assuming an average speed of ascent 
+# ... or descent. 
+get_mvt_rate <- function(start_depth, 
+                         end_depth, 
+                         cast = c("capture", "release")){
+  cast <- match.arg(cast)
+  if(cast == "capture"){
+    start <- start_depth + 4.77
+    end   <- end_depth - 4.77 
+  } else if(cast == "release"){
+    start <- start_depth - 4.77 
+    end   <- end_depth + 4.77
+  }
+  rate <- (abs(end - start)/120)*12
+  return(rate)
+}
+
+#### Define a function to calculate depth (temperature limits)
+# This function calculates, for a given depth/temperature observation, 
+# ... the possible depth range to which the temperature observation
+# ... corresponds. This depends on the uncertainty in depth (± 4.77 m)
+# ... the response time of the temperature sensor (12 s) and how far
+# ... the individual could move in that time. 
+get_depth_limits_for_temp <- function(start_depth = 143, 
+                                      end_depth = 133, 
+                                      cast = c("capture", "release")){
+  cast <- match.arg(cast)
+  if(is.na(start_depth) | is.na(end_depth)) {
+    if(cast == "capture"){
+      limits <- c(end_depth - 4.77, end_depth + 4.77)
+    } else if(cast == "release"){
+      limits <- c(0, end_depth + 4.77)
+    }
+  } else {
+    start_depths <- seq(start_depth - 4.77, start_depth + 4.77, by = 0.01)
+    end_depths   <- seq(end_depth - 4.77, end_depth + 4.77, by = 0.01)
+    possibilities <- 
+      expand.grid(start_depth = start_depths, end_depth = end_depths)
+    possibilities$adj <- 
+      (abs(possibilities$end_depth - possibilities$start_depth)/120)*12
+    if(start_depth >= end_depth) type <- "ascent" else type <- "descent"
+    if(type == "ascent"){
+      possibilities$depth_temp <- possibilities$end_depth + possibilities$adj
+      limits <- range(c(possibilities$depth_temp, end_depth - 4.77))
+    } else if(type == "descent"){
+      possibilities$depth_temp <- possibilities$end_depth - possibilities$adj
+      limits <- range(c(possibilities$depth_temp, end_depth + 4.77))
+    }
+  }
+  # limits[limits < 0] <- 0
+  return(limits)
+}
+
+
 #### End of code. 
 ################################
 ################################
