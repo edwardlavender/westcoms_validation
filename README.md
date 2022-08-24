@@ -21,7 +21,7 @@ Scotland
 ## Introduction
 
 This repository contains methods, written in `R` and organised as an `R
-Project`, for Lavender et al. (in prep). Benthic animal-borne sensors
+Project`, for Lavender et al. (in review). Benthic animal-borne sensors
 and citizen science combine to validate ocean modelling.
 
 In this paper, we used electronic tagging and tracking data from flapper
@@ -41,13 +41,13 @@ could be detected by a static array of receivers) and archival tags
 (programmed to record depth and temperature). Using the locational
 information provided by acoustic detections at receivers and the
 temperature data from archival tags, we assembled a validation dataset
-for bottom temperature predictions for the study site that could be
-compared to predictions from WeStCOMS. Using temperature-depth profiles
-resulting from recreational catch-and-release angling, we also validated
+for bottom temperatures across the study site that could be compared to
+predictions from WeStCOMS. Using temperature-depth profiles resulting
+from recreational catch-and-release angling, we also validated
 temperature-depth profiles from WeStCOMS. Both validation datasets
-spanned a period of time when the model forcings in WeStCOMS were
-updated, allowing us to quantify empirically the improvement in model
-skill resulting from model updates.
+spanned a period of time when the model forcing in WeStCOMS was
+independently updated, allowing us to quantify empirically the
+improvement in model skill resulting from the model update.
 
 ## Structure
 
@@ -73,14 +73,20 @@ skill resulting from model updates.
       - `skate/` contains flapper skate movement datasets, from Lavender
         et al. (2022), including:
           - `acoustics.rds` contains acoustic time series;
-          - `archival.rds` contains archival time series;
-          - `archival_in_middle_recap.rds` contains archival time series
-            during angling events that occurred during individuals’ time
-            at liberty;
-          - `archival_during_final_recap.rds` contains archival time
-            series during angling events that occurred at the end of
-            individuals’ time at liberty;  
-          - `recaptures_processed.rds` contains recapture locations;
+          - `archival*` files contain archival time series, including:
+              - `archival_raw.rds` and `archival.rds` contain archival
+                time series;
+              - `archival_following_tag_dep.rds` contains archival time
+                series immediately following tag deployment;
+              - `archival_in_middle_recap.rds` contains archival time
+                series during angling events that occurred during
+                individuals’ time at liberty;
+              - `archival_during_final_recap.rds` contains archival time
+                series during angling events that occurred at the end of
+                individuals’ time at liberty;  
+          - `skateids.rds`, `recapture_events.rds` and
+            `recaptures_processed.rds` contains information on tagged
+            individuals, recapture events and recapture locations;
       - `wc/` contains results, from `analyse_*` `R` scripts (see
         below);
       - `validation/` contains processed validation datasets (copied
@@ -116,7 +122,7 @@ directories are not provided in the online version of this repository.
 
 1.  **Setup project** by creating the directory system defined above.
 
-2.  **Source (raw) data** via the links provided.
+2.  **Source (raw) data** via the links provided (or the authors).
 
 3.  **Define global parameters** via `define_global_param.R` and
     `define_helpers.R`.
@@ -124,7 +130,13 @@ directories are not provided in the online version of this repository.
 4.  **Process raw data** via `process_data_raw.R`.
 
 5.  **Assemble validation datasets** via `assemble_temp_bottom.R` and
-    `assemble_temp_profile.R`.
+    `assemble_temp_profile.R`. In `assemble_temp_profile.R`,
+    temperature-depth profiles from individuals during capture events
+    (i.e., *ascending* profiles) and following capture events (i.e.,
+    *descending* profiles) are considered. Later analysis (see below)
+    showed that the *descending* profiles were of limited utility for
+    validation and they were excluded from `val_temp_profile_obs.rds`
+    and `val_temp_profile_pred.rds` (and the manuscript).
 
 6.  **Implement analysis** via `analyse_study_site.R`,
     `analyse_interpolation.R`, `analyse_temp_bottom_effort.R`,
@@ -161,5 +173,5 @@ Lavender, E. et al. (2022). Behavioural responses of a large, benthic
 elasmobranch to catch-and-release angling.
 <https://doi.org/10.3389/fmars.2022.864344>
 
-Lavender, E. et al. (in prep). Benthic animal-borne sensors and citizen
-science combine to validate ocean modelling.
+Lavender, E. et al. (in review). Benthic animal-borne sensors and
+citizen science combine to validate ocean modelling.
