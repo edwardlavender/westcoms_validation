@@ -908,7 +908,7 @@ basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y,
 
 # Add axes and labels 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 1, expression("Longitude (" * degree * ")"), cex = cex, line = 2)
 mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
 # Add north arrow and scale 
 add_north_arrow(170097.7, 741356, 

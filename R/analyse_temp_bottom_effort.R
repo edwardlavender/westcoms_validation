@@ -164,7 +164,7 @@ raster::lines(mpa, lwd = 1.75)
 add_sp_grid_ll(coast_site, 
                ext = raster::extent(c(axis_ls[[1]]$lim, axis_ls[[2]]$lim)))
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 1, expression("Longitude (" * degree * ")"), cex = cex, line = 2)
 mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 3.5)
 # Add spatial effort 
 adj <- 70
@@ -344,7 +344,7 @@ basicPlotteR::addTextLabels(mesh_focal_xy$x, mesh_focal_xy$y,
 
 # Add axes and labels 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
-mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+mtext(side = 1, expression("Longitude (" * degree * ")"), cex = cex, line = 2)
 mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 3)
 mtext(side = 4, "Depth (m)", cex = cex, line = 2)
 # Add north arrow and scale 

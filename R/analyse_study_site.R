@@ -183,10 +183,10 @@ if(!zoom){
 #### Add axes titles 
 pretty_axis(axis_ls = axis_ls, add = TRUE)
 if(!zoom){
-  mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 1.5)
+  mtext(side = 1, expression("Longitude (" * degree * ")"), cex = cex, line = 1.5)
   mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = -2)
 } else {
-  mtext(side = 1, expression("Longtitude (" * degree * ")"), cex = cex, line = 2)
+  mtext(side = 1, expression("Longitude (" * degree * ")"), cex = cex, line = 2)
   mtext(side = 2, expression("Latitude (" * degree * ")"), cex = cex, line = 2)
 }
 
