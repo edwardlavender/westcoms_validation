@@ -217,13 +217,20 @@ par(pp)
 # I.e., The no. of nodes with observations per day through time
 
 #### Define dataframe 
-space_and_time <- 
+# Define counts for days in dataframe
+tmp <- 
   rowSums((table(validation$date, validation$mesh_ID) > 0) + 0)
-space_and_time <- 
-  data.frame(date = names(space_and_time), 
-             count = as.numeric(space_and_time))
-space_and_time$date <- 
-  as.POSIXct(space_and_time$date, tz = "UTC")
+tmp <- 
+  data.frame(date = names(tmp), count = as.numeric(tmp))
+tmp$date <- 
+  as.POSIXct(tmp$date, tz = "UTC")
+# Define counts for all days in the period of observations
+space_and_time <- data.frame(date = seq(as.Date(min(validation$timestamp)), 
+                                        as.Date(max(validation$timestamp)), 
+                                        by = 1))
+space_and_time$date  <- as.POSIXct(space_and_time$date, tz = "UTC")
+space_and_time$count <- tmp$count[match(space_and_time$date, tmp$date)]
+space_and_time$count[is.na(space_and_time$count)] <- 0
 
 #### Make plot
 save <- TRUE
