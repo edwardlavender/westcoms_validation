@@ -81,10 +81,18 @@ nrow(validation)
 #### Temporal validation effort
 
 #### Define dataframe of temporal validation effort 
-temporal_effort <- table(validation$date)
-temporal_effort <- data.frame(date = names(temporal_effort), 
-                              count = as.numeric(temporal_effort))
-temporal_effort$date <- as.POSIXct(temporal_effort$date, tz = "UTC")
+# Define counts for days in dataframe 
+tmp <- table(validation$date)
+tmp <- data.frame(date = names(tmp), 
+                  count = as.numeric(tmp))
+tmp$date <- as.POSIXct(tmp$date, tz = "UTC")
+# Define counts for all days in the period of observations
+temporal_effort <- data.frame(date = seq(as.Date(min(validation$timestamp)), 
+                                         as.Date(max(validation$timestamp)), 
+                                         by = 1))
+temporal_effort$date  <- as.POSIXct(temporal_effort$date, tz = "UTC")
+temporal_effort$count <- tmp$count[match(temporal_effort$date, tmp$date)]
+temporal_effort$count[is.na(temporal_effort$count)] <- 0
 
 #### Plot figure
 save <- TRUE
