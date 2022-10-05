@@ -21,8 +21,9 @@ Scotland
 ## Introduction
 
 This repository contains methods, written in `R` and organised as an `R
-Project`, for Lavender et al. (in review). Benthic animal-borne sensors
-and citizen science combine to validate ocean modelling.
+Project`, for Lavender et al. (2022). Benthic animal-borne sensors and
+citizen science combine to validate ocean modelling. Scientific Reports,
+12, 16613. <https://doi.org/10.1038/s41598-022-20254-z>
 
 In this paper, we used electronic tagging and tracking data from flapper
 skate (*Dipturus intermedius*) to validate temperature predictions from
@@ -170,8 +171,9 @@ Finite Volume Community Ocean Model (FVCOM). R package version 0.1.0.
 Available at: <https://github.com/edwardlavender/fvcom.tbx>.
 
 Lavender, E. et al. (2022). Behavioural responses of a large, benthic
-elasmobranch to catch-and-release angling.
-<https://doi.org/10.3389/fmars.2022.864344>
+elasmobranch to catch-and-release angling. Frontiers in Marine Science,
+9, 864344. <https://doi.org/10.3389/fmars.2022.864344>
 
-Lavender, E. et al. (in review). Benthic animal-borne sensors and
-citizen science combine to validate ocean modelling.
+Lavender, E. et al. (2022). Benthic animal-borne sensors and citizen
+science combine to validate ocean modelling. Scientific Reports, 12,
+16613. <https://doi.org/10.1038/s41598-022-20254-z>

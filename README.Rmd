@@ -15,7 +15,7 @@ output: github_document
 
 ## Introduction
 
-This repository contains methods, written in `R` and organised as an `R Project`, for Lavender et al. (in review). Benthic animal-borne sensors and citizen science combine to validate ocean modelling. 
+This repository contains methods, written in `R` and organised as an `R Project`, for Lavender et al. (2022). Benthic animal-borne sensors and citizen science combine to validate ocean modelling. Scientific Reports, 12, 16613. https://doi.org/10.1038/s41598-022-20254-z
 
 In this paper, we used electronic tagging and tracking data from flapper skate (_Dipturus intermedius_) to validate temperature predictions from a regional hydrodynamic model---the West Scotland Coastal Ocean Modelling System (WeStCOMS) (Aleynik et al., 2016). This modelling system resolves hourly hydrodynamic conditions across an unstructured, triangular mesh that is organised into 11 vertically spaced, terrain-following Sigma layers (the 1st layer lies at the surface, the 10th layer lies at the seabed and the 11th layer lies below the seabed). Scalar variables, such as temperature, are resolved at mesh nodes. 
 
@@ -91,6 +91,6 @@ Aleynik, D. et al. (2016). A high resolution hydrodynamic model system suitable 
 
 Lavender, E. (2020). fvcom.tbx: An R toolbox for the unstructured grid Finite Volume Community Ocean Model (FVCOM). R package version 0.1.0. Available at: https://github.com/edwardlavender/fvcom.tbx.
 
-Lavender, E. et al. (2022). Behavioural responses of a large, benthic elasmobranch to catch-and-release angling. https://doi.org/10.3389/fmars.2022.864344
+Lavender, E. et al. (2022). Behavioural responses of a large, benthic elasmobranch to catch-and-release angling. Frontiers in Marine Science, 9, 864344. https://doi.org/10.3389/fmars.2022.864344
 
-Lavender, E. et al. (in review). Benthic animal-borne sensors and citizen science combine to validate ocean modelling. 
+Lavender, E. et al. (2022). Benthic animal-borne sensors and citizen science combine to validate ocean modelling. Scientific Reports, 12, 16613. https://doi.org/10.1038/s41598-022-20254-z
